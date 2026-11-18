@@ -305,8 +305,28 @@ if matches:
     history_fig = go.Figure(data=[go.Candlestick(x=history_context.index,open=history_context.Open,high=history_context.High,low=history_context.Low,close=history_context.Close,name="Historical prices")])
     history_fig.add_vrect(x0=historical.index[0], x1=historical.index[-1], fillcolor="RoyalBlue", opacity=0.18, line_width=0, annotation_text="Matched pattern", annotation_position="top left")
     history_fig.add_vline(x=historical.index[-1], line_dash="dash", annotation_text="Pattern finished")
-    history_fig.update_layout(height=350, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=30,b=10))
-    st.plotly_chart(history_fig, use_container_width=True)
+    history_fig.update_traces(
+        increasing=dict(line=dict(color="#00a884", width=1.3), fillcolor="#00a884"),
+        decreasing=dict(line=dict(color="#e65353", width=1.3), fillcolor="#e65353"),
+        selector=dict(type="candlestick"),
+    )
+    history_fig.update_layout(
+        height=540, template="plotly_dark",
+        paper_bgcolor="#101720", plot_bgcolor="#101720",
+        font=dict(size=13, color="#e8edf4"),
+        xaxis_rangeslider_visible=False,
+        xaxis=dict(showgrid=True, gridcolor="#293542"),
+        yaxis=dict(showgrid=True, gridcolor="#293542", side="right"),
+        hovermode="x", dragmode="pan", showlegend=False,
+        margin=dict(l=8, r=12, t=45, b=12),
+    )
+    if not symbol.endswith("-USD"):
+        history_fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
+    st.plotly_chart(
+        history_fig, use_container_width=True,
+        config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False,
+                "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
+    )
     with st.expander("View all matching dates and results"):
         view = pd.DataFrame([{
             "Pattern start": d.index[m["end"]-shape_window].strftime("%d %b %Y"),
@@ -339,6 +359,16 @@ fig.add_trace(go.Candlestick(
     increasing=dict(line=dict(color="#00a884", width=1.3), fillcolor="#00a884"),
     decreasing=dict(line=dict(color="#e65353", width=1.3), fillcolor="#e65353"),
 ))
+fig.add_hline(
+    y=support, line_color="#38bdf8", line_width=2, line_dash="dash",
+    annotation_text=f"Support {support:,.4f}", annotation_position="bottom right",
+    annotation_font_color="#38bdf8",
+)
+fig.add_hline(
+    y=resistance, line_color="#fbbf24", line_width=2, line_dash="dash",
+    annotation_text=f"Resistance {resistance:,.4f}", annotation_position="top right",
+    annotation_font_color="#fbbf24",
+)
 fig.update_layout(
     height=590,
     template="plotly_dark",
