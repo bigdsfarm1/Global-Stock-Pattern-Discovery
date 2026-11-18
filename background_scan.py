@@ -11,6 +11,7 @@ import pandas as pd
 import yfinance as yf
 from pattern_discovery import discover_patterns
 from price_action_sequences import detect_sequences
+from sequence_discovery import find_repeating_sequences
 
 OUT = Path("background_results")
 BATCH_SIZE = max(20, min(int(os.getenv("SCAN_BATCH_SIZE", "120")), 300))
@@ -21,7 +22,7 @@ CORE = {
     "Crypto": ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","BNB-USD","ADA-USD","DOGE-USD","LINK-USD","AVAX-USD","LTC-USD","DOT-USD","TRX-USD","BCH-USD","XLM-USD","HBAR-USD","LTC-USD","UNI-USD","AAVE-USD","ETC-USD","ATOM-USD","NEAR-USD","APT-USD","ARB-USD","OP-USD","FIL-USD","ICP-USD","INJ-USD","SUI-USD","PEPE24478-USD","SHIB-USD"],
     "Commodities": ["GC=F","SI=F","PL=F","PA=F","HG=F","CL=F","BZ=F","NG=F","HO=F","RB=F","ZC=F","ZW=F","ZS=F","ZM=F","ZL=F","KC=F","SB=F","CC=F","CT=F","OJ=F","LE=F","GF=F","HE=F"],
 }
-COLUMNS = ["market","symbol","as_of","close","change_5d_pct","change_20d_pct","volume_ratio","support_20d","resistance_20d","signals","research_score","pattern_window","pattern_matches","pattern_similarity","pattern_historical_hit_pct","pattern_median_forward_pct","pattern_target_pct","sequence_name","sequence_stage","sequence_strength","sequence_support","sequence_resistance"]
+COLUMNS = ["market","symbol","as_of","close","change_5d_pct","change_20d_pct","volume_ratio","support_20d","resistance_20d","signals","research_score","pattern_window","pattern_matches","pattern_similarity","pattern_historical_hit_pct","pattern_median_forward_pct","pattern_target_pct","sequence_name","sequence_stage","sequence_strength","sequence_support","sequence_resistance","discovered_sequence_window","discovered_sequence_matches","discovered_sequence_similarity","discovered_sequence_median_pct","discovered_sequence_up_5pct","discovered_sequence_down_5pct"]
 DIRECTORIES = [
     ("nasdaqlisted", "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"),
     ("otherlisted", "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"),
@@ -85,9 +86,20 @@ def evaluate(frame, ticker, market):
     sequence = detect_sequences(d)
     if sequence["sequence_name"] != "None":
         flags.append("Price action: " + sequence["sequence_stage"])
+    # Open-ended matching: no hard-coded named pattern or expected direction.
+    discoveries = find_repeating_sequences(d[["Open","High","Low","Close"]].to_numpy())
+    best_discovery = max(discoveries, key=lambda x: (x["similarity_pct"], x["matches"]), default=None)
+    discovery_fields = {
+        "discovered_sequence_window": best_discovery["window"] if best_discovery else None,
+        "discovered_sequence_matches": best_discovery["matches"] if best_discovery else None,
+        "discovered_sequence_similarity": best_discovery["similarity_pct"] if best_discovery else None,
+        "discovered_sequence_median_pct": best_discovery["median_forward_pct"] if best_discovery else None,
+        "discovered_sequence_up_5pct": best_discovery["historical_up_5pct"] if best_discovery else None,
+        "discovered_sequence_down_5pct": best_discovery["historical_down_5pct"] if best_discovery else None,
+    }
     # Heuristic prioritisation only; not a probability or recommendation.
     score = 3*breakout + 2*surge + 2*momentum + consolidation + (ret5>=.05)
-    return {"market":market,"symbol":ticker,"as_of":str(d.index[-1]),"close":round(float(close.iloc[-1]),5),"change_5d_pct":round(float(ret5*100),2),"change_20d_pct":round(float(ret20*100),2),"volume_ratio":round(vr,2) if vr is not None else None,"support_20d":round(float(prior_low),5),"resistance_20d":round(float(prior_high),5),"signals":", ".join(flags) or "None","research_score":int(score), **pattern, **sequence}
+    return {"market":market,"symbol":ticker,"as_of":str(d.index[-1]),"close":round(float(close.iloc[-1]),5),"change_5d_pct":round(float(ret5*100),2),"change_20d_pct":round(float(ret20*100),2),"volume_ratio":round(vr,2) if vr is not None else None,"support_20d":round(float(prior_low),5),"resistance_20d":round(float(prior_high),5),"signals":", ".join(flags) or "None","research_score":int(score), **pattern, **sequence, **discovery_fields}
 def main():
     OUT.mkdir(exist_ok=True)
     all_symbols, sources = universe()
