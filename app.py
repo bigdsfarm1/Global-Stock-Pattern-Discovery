@@ -19,23 +19,26 @@ st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout
 st.title("📈 Global Pattern Scanner")
 st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
 
-st.subheader("Search markets")
-if "active_market" not in st.session_state:
-    st.session_state["active_market"] = "Stocks"
-stock_col, crypto_col, commodity_col = st.columns(3)
-for column, label, caption in [
-    (stock_col, "Stocks", "🔎 Stocks"),
-    (crypto_col, "Crypto", "🔎 Crypto"),
-    (commodity_col, "Commodities", "🔎 Commodities"),
-]:
-    with column:
-        if st.button(caption, key="market_button_" + label, use_container_width=True,
-                     type="primary" if st.session_state["active_market"] == label else "secondary"):
-            st.session_state["active_market"] = label
-            st.session_state.pop("selection", None)
-            st.rerun()
-market = st.session_state["active_market"]
+if "app_section" not in st.session_state:
+    st.session_state["app_section"] = "Search"
+search_tab, opportunities_tab = st.columns(2)
+with search_tab:
+    if st.button("🔎 Search Markets", key="open_search", use_container_width=True,
+                 type="primary" if st.session_state["app_section"] == "Search" else "secondary"):
+        st.session_state["app_section"] = "Search"
+        st.rerun()
+with opportunities_tab:
+    if st.button("🌍 Market Opportunities", key="open_opportunities", use_container_width=True,
+                 type="primary" if st.session_state["app_section"] == "Opportunities" else "secondary"):
+        st.session_state["app_section"] = "Opportunities"
+        st.rerun()
 
+if st.session_state["app_section"] == "Opportunities":
+    show_market_opportunities()
+    st.stop()
+
+st.subheader("Search stocks, crypto or commodities")
+market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
 COMMODITIES = {
     "Gold": "GC=F", "Silver": "SI=F", "Platinum": "PL=F", "Palladium": "PA=F",
     "Copper": "HG=F", "WTI crude oil": "CL=F", "Brent crude oil": "BZ=F",
@@ -80,9 +83,6 @@ else:
     symbol = query.strip().upper()
     if query.strip() and market != "Commodities":
         st.caption("No matching suggestions? Enter an exact Yahoo Finance ticker. Crypto tickers usually end in -USD.")
-with st.expander("🌍 Market Opportunities — background scan results", expanded=True):
-    show_market_opportunities()
-
 if not symbol:
     st.info("Start by selecting or searching for an asset above.")
     st.stop()
