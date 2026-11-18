@@ -78,7 +78,7 @@ def evaluate(frame, ticker, market):
     momentum = close.iloc[-1] > ma20 > ma50
     surge = vr is not None and vr >= 1.8
     flags = [name for name, present in [("20-day breakout",breakout),("Tight consolidation",consolidation),("Uptrend",momentum),("Volume surge",surge),("5-day rise >= 5%",ret5>=.05),("20-day rise >= 5%",ret20>=.05)] if present]
-    pattern = discover_patterns(close.to_numpy())
+    pattern = discover_patterns(close.to_numpy(), ohlc=d[["Open", "High", "Low", "Close"]].to_numpy())
     if pattern["pattern_matches"] >= 3 and pattern["pattern_similarity"] >= 75:
         flags.append(f'Historical {pattern["pattern_window"]}-day chart analogs')
     # Heuristic prioritisation only; not a probability or recommendation.
