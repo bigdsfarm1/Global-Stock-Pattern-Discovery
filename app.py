@@ -18,8 +18,6 @@ if recognise_chart_structure is None:
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
 st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
-with st.expander("🌍 Market Opportunities — background scan results", expanded=True):
-    show_market_opportunities()
 
 market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
 COMMODITIES = {
@@ -66,6 +64,9 @@ else:
     symbol = query.strip().upper()
     if query.strip() and market != "Commodities":
         st.caption("No matching suggestions? Enter an exact Yahoo Finance ticker. Crypto tickers usually end in -USD.")
+with st.expander("🌍 Market Opportunities — background scan results", expanded=True):
+    show_market_opportunities()
+
 if not symbol:
     st.info("Start by selecting or searching for an asset above.")
     st.stop()
