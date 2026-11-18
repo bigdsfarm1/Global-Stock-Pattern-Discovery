@@ -1,0 +1,35 @@
+name: Test Telegram connection
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send a Telegram test message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import urllib.parse
+          import urllib.request
+          token = os.environ.get("TELEGRAM_BOT_TOKEN")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+          if not token or not chat_id:
+              raise SystemExit("Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID secrets")
+          payload = urllib.parse.urlencode({
+              "chat_id": chat_id,
+              "text": "✅ Stock scanner Telegram test successful! Price and candlestick alerts are configured."
+          }).encode()
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=payload, method="POST"
+          )
+          with urllib.request.urlopen(request, timeout=20) as response:
+              if response.status != 200:
+                  raise SystemExit("Telegram test failed")
+          print("Telegram test message sent.")
+          PY
