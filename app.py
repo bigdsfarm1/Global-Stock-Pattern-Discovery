@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
-from scanner import PATTERNS, add_signals, event_study, chart_shape_matches
+from scanner import PATTERNS, add_signals, event_study, chart_shape_matches, recognise_chart_structure
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
@@ -127,6 +127,27 @@ def describe_shape(prices):
         return "Overall downward trend"
     return "Sideways or mixed movement"
 
+current_structure = recognise_chart_structure(d.iloc[-shape_window:])
+st.markdown("**Current chart formation: " + current_structure["name"] + "**")
+st.write(current_structure["explanation"])
+st.caption("Preliminary shape classification only. Not a confirmed textbook formation.")
+st.markdown("**Pattern conclusion**")
+if len(matches) >= 5:
+    up_count = sum(m["end_return"] > 0 for m in matches)
+    down_count = sum(m["end_return"] < 0 for m in matches)
+    up_rate = up_count / len(matches)
+    if up_rate >= 0.7:
+        verdict = "Historically more often upward"
+    elif up_rate <= 0.3:
+        verdict = "Historically more often downward"
+    else:
+        verdict = "Mixed historical outcomes"
+    st.write(f"**{verdict}** — {up_count} of {len(matches)} similar historical examples finished higher after {horizon} days ({up_rate:.0%}).")
+    st.warning("Evidence strength: LOW. These are a few selected nearest matches from the same asset, not independently tested odds. Even a high percentage here cannot justify a high-confidence forecast.")
+elif matches:
+    st.write("**Insufficient evidence** — too few separate historical matches to assess direction reliably.")
+else:
+    st.write("**No conclusion** — not enough matching historical examples.")
 selected_match = None
 if matches:
     st.write(f"**{len(matches)} past chart shapes found** that resemble the latest {shape_window} days.")
@@ -143,7 +164,9 @@ if matches:
     historical = d.iloc[past_start:past_end]
     current = d.iloc[-shape_window:]
     st.markdown("**What pattern was found?**")
-    st.write(describe_shape(historical["Close"]) + ". The scanner found a similar overall shape in the latest chart.")
+    past_structure = recognise_chart_structure(historical)
+    st.write("**Historical formation:** " + past_structure["name"] + ". " + past_structure["explanation"])
+    st.write("**General movement:** " + describe_shape(historical["Close"]) + ". The scanner found a similar overall price path in the latest chart.")
     left, right = st.columns(2)
     left.metric("Pattern started", historical.index[0].strftime("%d %b %Y"))
     right.metric("Pattern finished", historical.index[-1].strftime("%d %b %Y"))
@@ -191,7 +214,7 @@ for p in PATTERNS:
         st.caption("These are overlapping historical observations, not independent probabilities or future price targets. Larger rises are generally less common.")
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
-fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text="Current pattern", annotation_position="top left")
+fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text=current_structure["name"], annotation_position="top left")
 fig.add_hline(y=support, line_dash="dot", annotation_text="Recent support")
 fig.add_hline(y=resistance, line_dash="dot", annotation_text="Recent resistance")
 fig.update_layout(height=420, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=20,b=10))
