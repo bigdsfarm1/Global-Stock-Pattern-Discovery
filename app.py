@@ -16,10 +16,10 @@ if recognise_chart_structure is None:
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
-st.caption("Search one stock or cryptocurrency at a time. Free historical research; not trading advice.")
+st.caption("Explore automatic pattern discoveries or analyse an individual investment. Free historical research; not trading advice.")
 
-page = st.radio("Page", ["Stock analysis", "Pattern opportunities"], horizontal=True, key="app_page")
-st.caption("Stock analysis checks one investment. Pattern opportunities searches a watchlist for chart matches.")
+page = st.radio("Dashboard", ["Pattern opportunities", "Stock analysis"], horizontal=True, key="app_page")
+st.caption("Pattern opportunities discovers matches across a watchlist. Stock analysis has its own separate search.")
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def prices_for(ticker, history):
@@ -47,9 +47,8 @@ def news_for(ticker):
         return []
 
 if page == "Pattern opportunities":
-    st.header("Pattern opportunities")
-    st.write("Search a market or enter specific ticker symbols to scan for historical chart-shape matches.")
-    st.subheader("🔎 Automatically discovered pattern matches")
+    st.header("Pattern opportunities dashboard")
+    st.write("Discover historical chart-shape matches across markets, or scan your own list of tickers.")
     st.write("Scan a starter watchlist for stocks whose **current chart shape** closely resembles earlier periods in their own history.")
     st.caption("Starter watchlist only, not every share worldwide. Free data can be delayed or incomplete. Results are research leads, not verified odds.")
     scan_universe = {
@@ -98,7 +97,7 @@ if page == "Pattern opportunities":
                 errors.append(ticker)
         return found, errors
 
-    if st.button("Find pattern opportunities", use_container_width=True):
+    if st.button("Scan for opportunities", type="primary", use_container_width=True):
         if custom_tickers.strip():
             symbols = tuple(dict.fromkeys(t.strip().upper() for t in custom_tickers.split(",") if t.strip()))[:20]
         else:
