@@ -262,19 +262,35 @@ if matches:
 else:
     st.info("Not enough separated historical patterns to compare. Try a longer history or shorter pattern length.")
 st.caption("Pattern dates refer to the historical example. The current pattern is still developing. Matching historical shapes does not establish that a future move will repeat.")
-st.subheader("Individual candle and breakout signals")
-st.caption("Secondary signals; the whole-chart matching above is a separate analysis.")
-st.subheader("Opportunity range from historical patterns")
-st.caption(f"Automatically checks rises of 5%, 10%, 20%, 30%, 50% and 100% within {horizon} future days. A hit means the future HIGH touched that level, not that a trade would have earned it.")
+st.subheader("Potential price opportunities")
+st.write(f"**What has happened after similar signals in the past?** We look at the next {horizon} days and check how far prices rose at any point.")
+st.caption("This section describes history, not what the price is predicted to reach. A historical price touching a level does not mean you could have sold at that price.")
 targets = [5, 10, 20, 30, 50, 100]
-for p in PATTERNS:
-    with st.expander(f"{'🟢 ' if p in active else ''}{p}" + (" — active now" if p in active else " — historical reference"), expanded=p in active):
-        results = []
+if active:
+    st.success("Signals detected today: " + ", ".join(active))
+else:
+    st.info("No monitored candle or breakout signal today. The examples below are historical research only, not current opportunities.")
+st.markdown("**Possible rise levels checked automatically**")
+st.caption("Example: '8 of 20' means 8 past signals were followed by a rise reaching that level at least once during the selected period.")
+ordered_patterns = [p for p in PATTERNS if p in active] + [p for p in PATTERNS if p not in active]
+for p in ordered_patterns:
+    with st.expander(("🟢 Active: " if p in active else "Past examples: ") + p, expanded=p in active):
+        records = []
+        sample_count = 0
         for target in targets:
             stats = event_study(d, p, horizon, target / 100)
-            results.append({"Rise": f"+{target}%", "Historical hit rate": f'{stats["hit_rate"]:.1%}' if pd.notna(stats["hit_rate"]) else "N/A", "Occurrences": stats["signals"]})
-        st.dataframe(pd.DataFrame(results), hide_index=True, use_container_width=True)
-        st.caption("These are overlapping historical observations, not independent probabilities or future price targets. Larger rises are generally less common.")
+            sample_count = stats["signals"]
+            hits = round(stats["hit_rate"] * sample_count) if sample_count and pd.notna(stats["hit_rate"]) else 0
+            records.append({"Price rise": f"+{target}%", "Past examples reaching it": f"{hits} of {sample_count}" if sample_count else "No data"})
+        if sample_count == 0:
+            st.write("Not enough historical examples to assess this signal.")
+        else:
+            st.dataframe(pd.DataFrame(records), hide_index=True, use_container_width=True)
+            if sample_count < 30:
+                st.warning(f"Only {sample_count} past examples. This is too little evidence to judge the chances reliably.")
+            else:
+                st.caption(f"Based on {sample_count} past signals. Some examples overlap, so the results may look more reliable than they are.")
+        st.caption("The figures count whether the price reached a level during the period, not whether it finished there. They are not odds or suggested selling targets.")
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
 fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text=current_structure["name"], annotation_position="top left")
