@@ -5,6 +5,7 @@ import pandas as pd
 from pattern_discovery import discover_patterns, discover_patterns_for_window
 from background_scan import evaluate
 from price_action_sequences import detect_sequences
+from sequence_discovery import find_repeating_sequences
 
 class PatternTests(unittest.TestCase):
     def setUp(self):
@@ -25,6 +26,11 @@ class PatternTests(unittest.TestCase):
         result=evaluate(self.frame,"TEST","Stocks")
         self.assertIsNotNone(result)
         self.assertIn("pattern_window",result)
+    def test_open_ended_sequences(self):
+        findings=find_repeating_sequences(self.frame[["Open","High","Low","Close"]].to_numpy())
+        self.assertTrue(findings)
+        self.assertIn("median_forward_pct",findings[0])
+        self.assertIn("window",findings[0])
     def test_price_action_sequence_output(self):
         result=detect_sequences(self.frame)
         self.assertIn("sequence_stage",result)
