@@ -4,106 +4,106 @@ import streamlit as st
 import yfinance as yf
 from scanner import PATTERNS, add_signals, event_study
 
-st.set_page_config(page_title="Global Stock Pattern Discovery", page_icon="📈", layout="wide")
-st.title("📈 Global Stock Pattern Discovery")
-st.caption("Free experimental candlestick research — delayed/incomplete market data; not financial advice.")
-st.warning("Research prototype: scans only the tickers you enter, not every stock worldwide. Historical hit rates do not imply future returns.")
+st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
+st.title("📈 Global Pattern Scanner")
+st.caption("Search one stock or cryptocurrency at a time. Free historical research; not trading advice.")
 
-market = st.radio("Market", ["Stocks", "Crypto"], horizontal=True)
-DEFAULT = ("AAPL,MSFT,NVDA,AMD,TSLA,RR.L,FORG.L,BZT.L" if market == "Stocks" else "BTC-USD,ETH-USD,BNB-USD,XRP-USD,SOL-USD,DOGE-USD,TRX-USD,ADA-USD,LINK-USD,AVAX-USD")
-st.caption("Crypto starter list: 10 major non-stablecoin assets (not a live market-cap ranking). Symbols use Yahoo Finance format like BTC-USD.")
-tickers_text = st.text_area("Watchlist — Yahoo Finance symbols, comma-separated", value=DEFAULT, height=80)
-col1, col2, col3 = st.columns(3)
-with col1:
-    period = st.selectbox("History", ["1y", "2y", "5y"], index=1)
-with col2:
-    horizon = st.selectbox("Forward evaluation window (trading days)", [5, 10, 20, 30, 60], index=3)
-with col3:
-    threshold = st.slider("Target rise (%)", 5, 100, 20, 5)
-
+market = st.radio("Choose a market", ["Stocks", "Crypto"], horizontal=True)
+examples = {"Stocks": "AAPL", "Crypto": "BTC-USD"}
+query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_prices(symbol, period):
-    frame = yf.Ticker(symbol).history(period=period, auto_adjust=True)
-    if frame.empty:
-        return frame
-    return frame.loc[:, ["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"])
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_news(symbol):
+def search_symbols(q):
     try:
-        return yf.Ticker(symbol).news or []
+        return yf.Search(q, max_results=12).quotes
     except Exception:
         return []
 
-symbols = list(dict.fromkeys(s.strip().upper() for s in tickers_text.replace("\n", ",").split(",") if s.strip()))[:100]
-if len([s for s in tickers_text.replace("\n", ",").split(",") if s.strip()]) > 100:
-    st.info("Free prototype limit: first 100 tickers are scanned.")
-if st.button("Run pattern scan", type="primary"):
-    if not symbols:
-        st.error("Enter at least one ticker.")
-        st.stop()
-    rows, data, errors = [], {}, []
-    progress = st.progress(0)
-    for idx, symbol in enumerate(symbols):
-        try:
-            prices = load_prices(symbol, period)
-            if len(prices) < max(40, horizon + 21):
-                errors.append(f"{symbol}: insufficient price history")
-                continue
-            d = add_signals(prices)
-            data[symbol] = d
-            recent = d.iloc[-1]
-            active = [p for p in PATTERNS if bool(recent[p])]
-            for pattern in PATTERNS:
-                stats = event_study(d, pattern, horizon, threshold / 100)
-                rows.append({"Ticker": symbol, "Pattern": pattern, "Signal today": bool(recent[pattern]),
-                             "Historical signals": stats["signals"], "Historical hit rate": stats["hit_rate"],
-                             "Median maximum forward rise": stats["median_max_gain"],
-                             "Latest close": float(recent["Close"])})
-        except Exception as exc:
-            errors.append(f"{symbol}: {type(exc).__name__}: {str(exc)[:120]}")
-        finally:
-            progress.progress((idx + 1) / len(symbols))
-    st.session_state["scan"] = (rows, data, errors)
-if "scan" in st.session_state:
-    rows, data, errors = st.session_state["scan"]
-    if rows:
-        result = pd.DataFrame(rows).sort_values(["Signal today", "Historical hit rate", "Historical signals"], ascending=[False, False, False])
-        st.subheader("Pattern ranking")
-        # Percentage columns must be scaled before display.
-        display = result.copy()
-        display["Historical hit rate"] *= 100
-        display["Median maximum forward rise"] *= 100
-        st.caption("Historical hit = price reached target at any future daily HIGH within the window; incomplete forward windows excluded. Signals may overlap.")
-        st.subheader("Easy-read results")
-        for _, item in display.head(12).iterrows():
-            with st.container(border=True):
-                st.write(str(item["Ticker"]) + " — " + str(item["Pattern"]))
-                st.write("Current signal: " + ("Detected" if item["Signal today"] else "Not detected"))
-                st.write("Historical hit rate: " + (str(round(item["Historical hit rate"], 1)) + "%" if pd.notna(item["Historical hit rate"]) else "N/A"))
-                st.caption(str(int(item["Historical signals"])) + " historical observations; small samples are unreliable.")
-        with st.expander("Full results table (scroll sideways)"):
-            st.dataframe(display, hide_index=True, use_container_width=True, column_config={
-            "Historical hit rate": st.column_config.NumberColumn(format="%.1f%%"),
-            "Median maximum forward rise": st.column_config.NumberColumn(format="%.1f%%"),
-            "Latest close": st.column_config.NumberColumn(format="%.3f")})
-        chosen = st.selectbox("Explore ticker", list(data))
-        d = data[chosen]
-        fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
-        fig.update_layout(title=f"{chosen} candlesticks (adjusted)", xaxis_rangeslider_visible=False, height=480)
-        st.plotly_chart(fig, use_container_width=True)
-        st.subheader(f"Recent headlines: {chosen}")
-        news = get_news(chosen)[:8]
-        if not news:
-            st.info("No news returned for this ticker. News availability varies by market.")
-        for item in news:
-            content = item.get("content", item)
-            title = content.get("title") or "Untitled"
-            url = (content.get("canonicalUrl") or {}).get("url") if isinstance(content.get("canonicalUrl"), dict) else content.get("link")
-            if url and str(url).startswith("https://"):
-                st.markdown(f"- [{title}]({url})")
-            else:
-                st.write("•", title)
-    if errors:
-        st.warning("Some tickers could not be scanned: " + "; ".join(errors))
-st.caption("Caveats: survivorship bias, overlapping events, no costs, possible data corrections and missing delisted securities. News is contextual, not an early-warning predictive model.")
+matches = search_symbols(query.strip()) if len(query.strip()) >= 2 else []
+choices = []
+for item in matches:
+    symbol = item.get("symbol", "")
+    if not symbol:
+        continue
+    is_crypto = item.get("quoteType", "").upper() == "CRYPTOCURRENCY" or symbol.endswith("-USD")
+    if (market == "Crypto") != is_crypto:
+        continue
+    choices.append((symbol, item.get("shortname") or item.get("longname") or symbol, item.get("exchange", "")))
+if choices:
+    labels = [f"{name} ({symbol}) — {exchange}" for symbol, name, exchange in choices]
+    chosen = st.selectbox("Select the correct listing", range(len(choices)), format_func=lambda i: labels[i])
+    symbol = choices[chosen][0]
+else:
+    symbol = query.strip().upper()
+    if query.strip():
+        st.caption("No matching suggestions? Enter an exact Yahoo Finance ticker. Crypto tickers usually end in -USD.")
+if not symbol:
+    st.info("Start by searching for a company or cryptocurrency above.")
+    st.stop()
+with st.expander("Analysis settings"):
+    period = st.selectbox("Historical data", ["1y", "2y", "5y"], index=1)
+    horizon = st.selectbox("Evaluation window (days of price bars)", [5, 10, 20, 30, 60], index=3)
+    target = st.slider("Target price rise (%)", 5, 100, 20, 5)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def prices_for(ticker, history):
+    d = yf.Ticker(ticker).history(period=history, auto_adjust=True)
+    return d[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]) if not d.empty else d
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def news_for(ticker):
+    try:
+        return yf.Ticker(ticker).news or []
+    except Exception:
+        return []
+
+if st.button("🔎 Analyse this investment", type="primary", use_container_width=True):
+    st.session_state["selection"] = (symbol, period, horizon, target)
+if "selection" not in st.session_state:
+    st.stop()
+symbol, period, horizon, target = st.session_state["selection"]
+st.subheader(f"Analysis: {symbol}")
+try:
+    prices = prices_for(symbol, period)
+except Exception as exc:
+    st.error(f"Market data could not be loaded: {str(exc)[:180]}")
+    st.stop()
+if len(prices) < max(40, horizon + 21):
+    st.error("Not enough reliable historical data for this symbol. Check the ticker or try another asset.")
+    st.stop()
+d = add_signals(prices)
+close = float(d["Close"].iloc[-1])
+st.metric("Latest available closing price (quote currency)", f"{close:,.5f}")
+st.caption("May be delayed; the price is not a live executable quote.")
+active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
+if active:
+    st.success("Detected on latest price bar: " + ", ".join(active))
+else:
+    st.info("No monitored pattern detected on the latest price bar. This is not a buy signal.")
+st.subheader("What did similar patterns do historically?")
+for p in PATTERNS:
+    stats = event_study(d, p, horizon, target / 100)
+    with st.container(border=True):
+        st.markdown(f"**{p}**")
+        if stats["signals"]:
+            st.write(f'{stats["hit_rate"]:.1%} reached +{target}% within {horizon} bars')
+            st.caption(f'{stats["signals"]} historical occurrences. ' + ("Small sample; unreliable." if stats["signals"] < 30 else "Overlapping signals can exaggerate reliability."))
+        else:
+            st.caption("Not enough historical examples to calculate a hit rate.")
+st.subheader("Price chart")
+fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
+fig.update_layout(height=420, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=20,b=10))
+st.plotly_chart(fig, use_container_width=True)
+st.subheader("Recent news")
+news = news_for(symbol)[:6]
+if not news:
+    st.caption("No recent headlines available from this data source.")
+for item in news:
+    c = item.get("content", item)
+    title = c.get("title", "Untitled")
+    link = c.get("canonicalUrl", {})
+    url = link.get("url") if isinstance(link, dict) else c.get("link")
+    if url and str(url).startswith("https://"):
+        st.markdown(f"- [{title}]({url})")
+    else:
+        st.write("• " + title)
+st.warning("Research only. No reliable buy/sell price or confidence probability is calculated yet. Historical results may contain overlap and survivorship bias, and exclude costs, liquidity and delisted assets.")
