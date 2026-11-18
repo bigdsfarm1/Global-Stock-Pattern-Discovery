@@ -2,7 +2,10 @@ name: Background multi-market scan
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 7,19 * * 1-5'
+    # UK open 08:00 Europe/London; scan at 07:50 local.
+    - cron: '50 6,7 * * 1-5'
+    # US open 09:30 America/New_York; scan at 09:20 local.
+    - cron: '20 13,14 * * 1-5'
 permissions:
   contents: read
 jobs:
@@ -11,15 +14,44 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Select correct daylight-saving schedule
+        id: window
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          now = datetime.now(timezone.utc)
+          schedule = os.environ.get("SCHEDULE", "")
+          if os.environ.get("EVENT_NAME") == "workflow_dispatch":
+              run = True
+          elif schedule.startswith("50 "):
+              target = now.astimezone(ZoneInfo("Europe/London")).replace(hour=7,minute=50,second=0,microsecond=0).astimezone(timezone.utc)
+              run = now.hour == target.hour
+          elif schedule.startswith("20 "):
+              target = now.astimezone(ZoneInfo("America/New_York")).replace(hour=9,minute=20,second=0,microsecond=0).astimezone(timezone.utc)
+              run = now.hour == target.hour
+          else:
+              run = False
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"run={'true' if run else 'false'}\n")
+          print("Run scan:", run, "UTC:", now.isoformat())
+          PY
       - uses: actions/setup-python@v5
+        if: steps.window.outputs.run == 'true'
         with:
           python-version: '3.11'
           cache: pip
       - run: pip install pandas numpy yfinance
+        if: steps.window.outputs.run == 'true'
       - name: Scan stocks, crypto and commodities
+        if: steps.window.outputs.run == 'true'
         run: python background_scan.py
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: steps.window.outputs.run == 'true'
         with:
           name: background-market-scan
           path: background_results/
