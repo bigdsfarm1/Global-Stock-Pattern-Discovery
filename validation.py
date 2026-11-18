@@ -1,7 +1,14 @@
 """Historical holdout evaluation of a fixed technical rule, not a trading simulation."""
 import numpy as np
 import pandas as pd
-from scanner import add_signals, recognise_chart_structure
+import scanner
+
+add_signals = scanner.add_signals
+recognise_chart_structure = getattr(scanner, "recognise_chart_structure", None)
+if recognise_chart_structure is None:
+    def recognise_chart_structure(prices):
+        return {"direction": "unknown", "name": "Unavailable", "explanation": "Pattern classifier not loaded"}
+
 
 
 def technical_label(history):
