@@ -54,7 +54,12 @@ def chart_shape_matches(d: pd.DataFrame, window: int = 30, horizon: int = 30, to
         y = np.log(x / x[0])
         scale = np.std(np.diff(y))
         return y / max(scale, 0.002)
-    # A single close has no shape: compare the full OHLC candle instead.\n    def candle_features(i):\n        o, h, l, c = [float(d[k].iloc[i]) for k in ("Open", "High", "Low", "Close")]\n        span = h - l\n        return np.array([(c-o)/span, (min(o,c)-l)/span, (h-max(o,c))/span]) if span > 0 else np.zeros(3)\n    current = candle_features(-1) if window == 1 else normalise(close[-window:])
+    # A single close has no shape: compare the full OHLC candle instead.
+    def candle_features(i):
+        o, h, l, c = [float(d[k].iloc[i]) for k in ("Open", "High", "Low", "Close")]
+        span = h - l
+        return np.array([(c-o)/span, (min(o,c)-l)/span, (h-max(o,c))/span]) if span > 0 else np.zeros(3)
+    current = candle_features(-1) if window == 1 else normalise(close[-window:])
     if current is None:
         return []
     candidates = []
