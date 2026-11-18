@@ -5,7 +5,6 @@ import yfinance as yf
 import scanner
 from validation import holdout_test
 from market_opportunities import show_market_opportunities
-from pattern_validation_ui import show_pattern_validation
 
 PATTERNS = scanner.PATTERNS
 add_signals = scanner.add_signals
@@ -22,7 +21,7 @@ st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free h
 
 if "app_section" not in st.session_state:
     st.session_state["app_section"] = "Search"
-search_tab, opportunities_tab, validation_tab = st.columns(3)
+search_tab, opportunities_tab, validation_tab = st.columnssearch_tab, opportunities_tab = st.columns(2)
 with search_tab:
     if st.button("🔎 Search Markets", key="open_search", use_container_width=True,
                  type="primary" if st.session_state["app_section"] == "Search" else "secondary"):
@@ -33,18 +32,8 @@ with opportunities_tab:
                  type="primary" if st.session_state["app_section"] == "Opportunities" else "secondary"):
         st.session_state["app_section"] = "Opportunities"
         st.rerun()
-with validation_tab:
-    if st.button("🧪 Pattern Validation", key="open_validation", use_container_width=True,
-                 type="primary" if st.session_state["app_section"] == "Validation" else "secondary"):
-        st.session_state["app_section"] = "Validation"
-        st.rerun()
 
-if st.session_state["app_section"] == "Validation":
-    show_pattern_validation()
-    st.stop()
-
-if st.session_state["app_section"] == "Opportunities":
-    show_market_opportunities()
+ show_market_opportunities()
     st.stop()
 
 st.subheader("Search stocks, crypto or commodities")
