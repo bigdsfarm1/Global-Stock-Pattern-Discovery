@@ -1,10 +1,10 @@
 """Historical whole-chart analog discovery; exploratory, not predictive validation."""
 import numpy as np
 
-WINDOWS = (10, 20, 40)
+WINDOWS = (1, 3, 5, 10, 20, 40)
 HORIZON = 10
 
-def discover_patterns(close, threshold=0.10):
+def discover_patterns(close, threshold=0.10, ohlc=None):
     """Compare today's entire normalized price path with prior paths in the same asset.
 
     Historical outcomes are measured only AFTER each historical pattern ended.
@@ -15,23 +15,41 @@ def discover_patterns(close, threshold=0.10):
     values = values[np.isfinite(values) & (values > 0)]
     n = len(values)
     best = None
+    candles = None
+    if ohlc is not None:
+        candles = np.asarray(ohlc, dtype=float)
+        if candles.shape != (n, 4):
+            candles = None
+    def candle_shape(index):
+        op, hi, lo, cl = candles[index]
+        span = max(hi - lo, 1e-12)
+        return np.array([(cl - op) / span, (min(op, cl) - lo) / span,
+                         (hi - max(op, cl)) / span])
     for window in WINDOWS:
         if n < 2 * window + HORIZON + 10:
             continue
-        current = np.log(values[-window:] / values[-window])
-        current = current - np.linspace(0, 1, window) * current[-1] * 0.25
+        if window == 1:
+            if candles is None:
+                continue  # A single closing price has no shape; use OHLC candles.
+            current = candle_shape(-1)
+        else:
+            current = np.log(values[-window:] / values[-window])
+            current = current - np.linspace(0, 1, window) * current[-1] * 0.25
         candidates = []
         # End is exclusive; future outcomes must be fully observed.
         for end in range(window, n - HORIZON + 1):
-            past = np.log(values[end-window:end] / values[end-window])
-            past = past - np.linspace(0, 1, window) * past[-1] * 0.25
+            if window == 1:
+                past = candle_shape(end - 1)
+            else:
+                past = np.log(values[end-window:end] / values[end-window])
+                past = past - np.linspace(0, 1, window) * past[-1] * 0.25
             distance = float(np.sqrt(np.mean((current - past) ** 2)))
             future_return = float(values[end + HORIZON - 1] / values[end - 1] - 1)
             candidates.append((distance, end, future_return))
         candidates.sort()
         matches = []
         for candidate in candidates:
-            if all(abs(candidate[1] - m[1]) >= window for m in matches):
+            if all(abs(candidate[1] - m[1]) >= max(window, HORIZON) for m in matches):
                 matches.append(candidate)
             if len(matches) == 5:
                 break
