@@ -4,6 +4,7 @@ import streamlit as st
 import yfinance as yf
 import scanner
 from validation import holdout_test
+from market_opportunities import show_market_opportunities
 
 PATTERNS = scanner.PATTERNS
 add_signals = scanner.add_signals
@@ -17,6 +18,8 @@ if recognise_chart_structure is None:
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
 st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
+with st.expander("🌍 Market Opportunities — background scan results", expanded=True):
+    show_market_opportunities()
 
 market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
 COMMODITIES = {
