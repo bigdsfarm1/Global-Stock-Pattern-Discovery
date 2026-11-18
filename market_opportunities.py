@@ -48,19 +48,26 @@ def show_market_opportunities():
         if col not in data.columns:
             data[col] = pd.NA
         data[col] = pd.to_numeric(data[col], errors="coerce")
+    for col in ["sequence_name", "sequence_stage"]:
+        if col not in data.columns:
+            data[col] = "None"
+        data[col] = data[col].fillna("None")
     market = st.selectbox("Market filter", ["All markets", "Stocks", "Crypto", "Commodities"], key="opportunities_market")
+    sequence_only = st.checkbox("Only show zigzag / breakdown sequences", value=False, key="opportunities_sequences")
     signal_only = st.checkbox("Only show assets with detected signals", value=True, key="opportunities_signals")
     view = data.copy()
     if market != "All markets":
         view = view.loc[view["market"] == market]
+    if sequence_only:
+        view = view.loc[view["sequence_name"] != "None"]
     if signal_only:
         view = view.loc[view["signals"].fillna("None") != "None"]
     view = view.sort_values(["research_score", "change_5d_pct"], ascending=[False, False]).head(30)
     if view.empty:
         st.info("No matching opportunities in the latest scan. Try a different filter.")
         return
-    display = view[["market", "symbol", "signals", "pattern_window", "pattern_similarity", "pattern_matches", "pattern_historical_hit_pct", "pattern_median_forward_pct", "research_score", "change_5d_pct", "change_20d_pct", "volume_ratio"]].rename(columns={
-        "market": "Market", "symbol": "Ticker", "signals": "Detected signals",
+    display = view[["market", "symbol", "sequence_stage", "signals", "pattern_window", "pattern_similarity", "pattern_matches", "pattern_historical_hit_pct", "pattern_median_forward_pct", "research_score", "change_5d_pct", "change_20d_pct", "volume_ratio"]].rename(columns={
+        "market": "Market", "symbol": "Ticker", "sequence_stage": "Price-action sequence", "signals": "Detected signals",
         "pattern_window": "Pattern days", "pattern_similarity": "Chart match %",
         "pattern_matches": "Past analogs", "pattern_historical_hit_pct": "Past +10% hits",
         "pattern_median_forward_pct": "Past 10d median %",
@@ -68,6 +75,7 @@ def show_market_opportunities():
         "volume_ratio": "Volume / avg",
     })
     st.dataframe(display, hide_index=True, use_container_width=True)
+    st.caption("Price-action sequences look for a sharp selloff, several zigzag turns, weaker highs and a possible or confirmed support breakdown. This is a rule-based research signal, not a proven trading edge. Older scans may not yet contain these fields.")
     st.caption("Chart matches compare full 10/20/40-day price paths against earlier shapes in the SAME asset. Past +10% hits count gains over the following 10 days; small samples are exploratory, not forecasts. Older results may have blank pattern fields until rescanned.")
     st.caption("Scores rank simple technical conditions; they are NOT probabilities, forecasts or validated trading edges. Daily candles can be stale before the market opens; futures volume can be distorted by contract rolls.")
     st.link_button("View GitHub scan runs", "https://github.com/bigdsfarm1/Global-Stock-Pattern-Discovery/actions/workflows/background-market-scan.yml")
