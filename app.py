@@ -118,6 +118,30 @@ elif sum(negative_signals) >= 3 and historical_bias != "up":
 else:
     action = "HOLD / wait"
     explanation = "The technical evidence is mixed or insufficient for a clear directional setup. HOLD is a neutral research label, not a recommendation to retain a position."
+st.subheader("Market trend")
+trend_span = st.segmented_control("Trend period", options=["Short term (20 days)", "Medium term (50 days)", "Long term (200 days)"], default="Medium term (50 days)", key="trend_span")
+trend_days = 20 if trend_span.startswith("Short") else (50 if trend_span.startswith("Medium") else 200)
+if len(d) < trend_days + 10:
+    st.info("Not enough price history to assess this trend period. Try a shorter period or download more history.")
+else:
+    series = d["Close"].astype(float)
+    avg = series.rolling(trend_days).mean()
+    now_avg = float(avg.iloc[-1])
+    previous_avg = float(avg.iloc[-min(11, len(avg))])
+    slope = (now_avg / previous_avg - 1) if previous_avg > 0 else 0
+    gap = (close / now_avg - 1) if now_avg > 0 else 0
+    if gap > 0.01 and slope > 0.005:
+        trend_label = "🟢 UPWARD TREND"
+        trend_text = "Price is above its moving average and the average is rising."
+    elif gap < -0.01 and slope < -0.005:
+        trend_label = "🔴 DOWNWARD TREND"
+        trend_text = "Price is below its moving average and the average is falling."
+    else:
+        trend_label = "🟡 SIDEWAYS / UNCLEAR"
+        trend_text = "Price and moving-average direction do not agree strongly enough to confirm a trend."
+    st.markdown("### " + trend_label)
+    st.write(trend_text)
+    st.caption(f"{trend_days}-day moving average: {now_avg:,.5f} (quote currency). Price relative to average: {gap:+.1%}. Trend is descriptive, not a forecast.")
 st.subheader("Current assessment — Buy / Hold / Sell")
 with st.container(border=True):
     st.markdown("### " + action)
