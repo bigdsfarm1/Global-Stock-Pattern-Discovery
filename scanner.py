@@ -84,3 +84,48 @@ def chart_shape_matches(d: pd.DataFrame, window: int = 30, horizon: int = 30, to
             if len(matches) >= top_n:
                 break
     return matches
+
+
+def recognise_chart_structure(prices: pd.DataFrame) -> dict:
+    """Exploratory geometric labels, not validated technical-pattern recognition."""
+    import numpy as np
+    c = prices["Close"].to_numpy(dtype=float)
+    if len(c) < 15 or not np.isfinite(c).all() or np.min(c) <= 0:
+        return {"name": "Unclassified chart shape", "explanation": "Not enough valid price history.", "direction": "unknown"}
+    n = len(c)
+    # Smooth noisy prices before finding broad turning points.
+    smooth = pd.Series(c).rolling(max(3, n // 12), min_periods=1, center=True).mean().to_numpy()
+    thirds = np.array_split(smooth, 3)
+    first, middle, last = [float(np.mean(t)) for t in thirds]
+    spread = (float(np.max(smooth)) - float(np.min(smooth))) / float(np.mean(smooth))
+    change = c[-1] / c[0] - 1
+    lows = []
+    highs = []
+    for i in range(2, n - 2):
+        if smooth[i] <= min(smooth[i-2:i]) and smooth[i] <= min(smooth[i+1:i+3]):
+            lows.append(i)
+        if smooth[i] >= max(smooth[i-2:i]) and smooth[i] >= max(smooth[i+1:i+3]):
+            highs.append(i)
+    for j, a in enumerate(lows):
+        for b in lows[j+1:]:
+            if b-a < max(5, n//5):
+                continue
+            if abs(smooth[a] / smooth[b] - 1) < 0.045 and np.max(smooth[a:b+1]) > max(smooth[a], smooth[b])*1.055:
+                return {"name":"Possible double bottom (W shape)","explanation":"Two separated lows at similar levels with a rebound between them. Confirmation would require a subsequent breakout.","direction":"bullish"}
+    for j, a in enumerate(highs):
+        for b in highs[j+1:]:
+            if b-a < max(5, n//5):
+                continue
+            if abs(smooth[a] / smooth[b] - 1) < 0.045 and np.min(smooth[a:b+1]) < min(smooth[a], smooth[b])*0.945:
+                return {"name":"Possible double top (M shape)","explanation":"Two separated highs at similar levels with a pullback between them. This can indicate resistance.","direction":"bearish"}
+    if first > middle * 1.04 and last > middle * 1.04:
+        return {"name":"Rounded recovery / possible base","explanation":"Prices fell into the middle of the period and subsequently recovered.","direction":"bullish"}
+    if first < middle * 0.96 and last < middle * 0.96:
+        return {"name":"Rounded peak / possible reversal","explanation":"Prices rose into the middle of the period and subsequently retreated.","direction":"bearish"}
+    if spread < 0.07:
+        return {"name":"Sideways consolidation","explanation":"Prices remained in a relatively narrow range, with no clear breakout yet.","direction":"neutral"}
+    if change > 0.10:
+        return {"name":"Upward trend","explanation":"Prices generally moved higher across the selected period.","direction":"bullish"}
+    if change < -0.10:
+        return {"name":"Downward trend","explanation":"Prices generally moved lower across the selected period.","direction":"bearish"}
+    return {"name":"Mixed / irregular chart shape","explanation":"The price path does not clearly match the basic geometric structures currently checked.","direction":"neutral"}
