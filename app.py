@@ -18,8 +18,8 @@ st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout
 st.title("📈 Global Pattern Scanner")
 st.caption("Explore automatic pattern discoveries or analyse an individual investment. Free historical research; not trading advice.")
 
-page = st.radio("Dashboard", ["Pattern opportunities", "Stock analysis"], horizontal=True, key="app_page")
-st.caption("Pattern opportunities discovers matches across a watchlist. Stock analysis has its own separate search.")
+page = st.radio("Choose a section", ["Search stocks", "Automatically found shares"], horizontal=True, key="app_page")
+st.caption("Search stocks: look up a share yourself. Automatically found shares: see opportunities discovered by the scanner. These are separate sections.")
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def prices_for(ticker, history):
@@ -46,8 +46,8 @@ def news_for(ticker):
     except Exception:
         return []
 
-if page == "Pattern opportunities":
-    st.header("Pattern opportunities dashboard")
+if page == "Automatically found shares":
+    st.header("Automatically found shares")
     st.write("Discover historical chart-shape matches across markets, or scan your own list of tickers.")
     st.write("Scan a starter watchlist for stocks whose **current chart shape** closely resembles earlier periods in their own history.")
     st.caption("Starter watchlist only, not every share worldwide. Free data can be delayed or incomplete. Results are research leads, not verified odds.")
@@ -132,7 +132,7 @@ if page == "Pattern opportunities":
 
     st.stop()
 
-st.header("Stock analysis")
+st.header("Search stocks")
 market = st.radio("Choose a market", ["Stocks", "Crypto"], horizontal=True)
 examples = {"Stocks": "AAPL", "Crypto": "BTC-USD"}
 query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
