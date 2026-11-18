@@ -58,6 +58,13 @@ if page == "Pattern opportunities":
         "Crypto": ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD"],
     }
     scan_market = st.selectbox("Markets to scan", ["All starter markets", *scan_universe], key="discovery_market")
+    custom_tickers = st.text_input(
+        "Search specific shares or crypto (optional)",
+        placeholder="e.g. FORG.L, NVDA, BTC-USD",
+        key="discovery_tickers",
+        help="Enter exact Yahoo Finance ticker symbols separated by commas. Leave blank to scan the chosen market.",
+    )
+
     scan_days = st.selectbox("Match chart length (days)", [15, 30, 60], index=1, key="discovery_days")
     scan_horizon = st.selectbox("Check outcomes after (days)", [10, 20, 30, 60], index=2, key="discovery_horizon")
 
@@ -92,14 +99,17 @@ if page == "Pattern opportunities":
         return found, errors
 
     if st.button("Find pattern opportunities", use_container_width=True):
-        symbols = tuple(t for group in (scan_universe.values() if scan_market == "All starter markets" else [scan_universe[scan_market]]) for t in group)
+        if custom_tickers.strip():
+            symbols = tuple(dict.fromkeys(t.strip().upper() for t in custom_tickers.split(",") if t.strip()))[:20]
+        else:
+            symbols = tuple(t for group in (scan_universe.values() if scan_market == "All starter markets" else [scan_universe[scan_market]]) for t in group)
         with st.spinner(f"Comparing historical charts for {len(symbols)} assets..."):
             st.session_state["discovery_results"] = discover_patterns(symbols, scan_days, scan_horizon)
-            st.session_state["discovery_settings"] = (scan_market, scan_days, scan_horizon)
+            st.session_state["discovery_settings"] = (scan_market, scan_days, scan_horizon, custom_tickers.strip().upper())
     if "discovery_results" in st.session_state:
         found, errors = st.session_state["discovery_results"]
         settings = st.session_state.get("discovery_settings")
-        if settings != (scan_market, scan_days, scan_horizon):
+        if settings != (scan_market, scan_days, scan_horizon, custom_tickers.strip().upper()):
             st.info("Settings changed. Run the scan again to update the results.")
         elif not found:
             st.info("No qualifying chart matches found in this sample. Try another market or chart length.")
