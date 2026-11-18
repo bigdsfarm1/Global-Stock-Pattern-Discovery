@@ -90,7 +90,8 @@ def main():
     state = load_json(STATE_PATH, {})
     messages, state = check_alerts(config, state)
     for message in messages:
-        send_message(token, chat_id, message)
+        if not send_message(token, chat_id, message):
+            raise RuntimeError("Telegram did not accept the alert.")
     STATE_PATH.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Sent {len(messages)} new Telegram alerts.")
 
