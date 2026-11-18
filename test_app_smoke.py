@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from pattern_discovery import discover_patterns, discover_patterns_for_window
 from background_scan import evaluate
+from price_action_sequences import detect_sequences
 
 class PatternTests(unittest.TestCase):
     def setUp(self):
@@ -24,6 +25,10 @@ class PatternTests(unittest.TestCase):
         result=evaluate(self.frame,"TEST","Stocks")
         self.assertIsNotNone(result)
         self.assertIn("pattern_window",result)
+    def test_price_action_sequence_output(self):
+        result=detect_sequences(self.frame)
+        self.assertIn("sequence_stage",result)
+        self.assertIn("sequence_support",result)
     def test_no_single_close_shape(self):
         result=discover_patterns_for_window(self.frame.Close.to_numpy(),1)
         self.assertEqual(result["pattern_matches"],0)
