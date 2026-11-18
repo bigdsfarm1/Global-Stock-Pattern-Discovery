@@ -13,6 +13,6 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
       - name: Compile Python
-        run: python -m compileall -q app.py scanner.py validation.py test_validation.py market_backtest.py
+        run: python -m compileall -q app.py scanner.py validation.py test_validation.py market_backtest.py collect_market_data.py discover_patterns.py test_research.py
       - name: Run deterministic validation tests
-        run: python -m unittest -v test_validation
+        run: python -m unittest -v test_validation test_research
