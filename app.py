@@ -19,12 +19,23 @@ st.title("📈 Global Pattern Scanner")
 st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
 
 market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
-COMMODITIES = {"Gold futures": "GC=F", "Silver futures": "SI=F", "Crude oil (WTI) futures": "CL=F", "Brent crude futures": "BZ=F", "Natural gas futures": "NG=F", "Copper futures": "HG=F", "Corn futures": "ZC=F", "Wheat futures": "ZW=F", "Soybean futures": "ZS=F", "Platinum futures": "PL=F"}
-examples = {"Stocks": "AAPL", "Crypto": "BTC-USD", "Commodities": "GC=F"}
+COMMODITIES = {
+    "Gold": "GC=F", "Silver": "SI=F", "Platinum": "PL=F", "Palladium": "PA=F",
+    "Copper": "HG=F", "WTI crude oil": "CL=F", "Brent crude oil": "BZ=F",
+    "Natural gas": "NG=F", "Heating oil": "HO=F", "RBOB gasoline": "RB=F",
+    "Corn": "ZC=F", "Wheat": "ZW=F", "Soybeans": "ZS=F",
+    "Soybean meal": "ZM=F", "Soybean oil": "ZL=F", "Oats": "ZO=F",
+    "Rough rice": "ZR=F", "Live cattle": "LE=F", "Feeder cattle": "GF=F",
+    "Lean hogs": "HE=F", "Coffee": "KC=F", "Sugar": "SB=F",
+    "Cocoa": "CC=F", "Cotton": "CT=F", "Orange juice": "OJ=F",
+    "Lumber": "LBR=F",
+}
 if market == "Commodities":
-    commodity = st.selectbox("Choose a commodity", list(COMMODITIES))
-    st.caption("Yahoo Finance futures symbols are used as price proxies. Futures prices are not spot prices and may be affected by contract rolls.")
-    query = COMMODITIES[commodity]
+    st.caption("Search the commodity list, or enter another Yahoo Finance futures ticker. Coverage depends on available Yahoo data.")
+    commodity = st.selectbox("Search commodities", list(COMMODITIES), index=None, placeholder="Type a commodity name…")
+    custom_commodity = st.text_input("Or enter a commodity futures ticker", placeholder="e.g. GC=F", key="commodity_ticker")
+    query = custom_commodity.strip().upper() or (COMMODITIES[commodity] if commodity else "")
+    st.caption("These are futures price series, not physical spot prices. Some symbols may have missing data or contract-roll effects.")
 else:
     query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -50,7 +61,7 @@ if choices:
     symbol = choices[chosen][0]
 else:
     symbol = query.strip().upper()
-    if query.strip():
+    if query.strip() and market != "Commodities":
         st.caption("No matching suggestions? Enter an exact Yahoo Finance ticker. Crypto tickers usually end in -USD.")
 if not symbol:
     st.info("Start by selecting or searching for an asset above.")
