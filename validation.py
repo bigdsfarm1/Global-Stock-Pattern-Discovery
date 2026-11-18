@@ -23,11 +23,26 @@ def technical_label(history):
     volratio = float(d["Volume"].iloc[-1]) / volbase if volbase > 0 else 0
     breakout = bool(d["20-day breakout"].tail(3).any())
     direction = recognise_chart_structure(d.tail(30)).get("direction", "unknown")
-    positive = sum([close > ma20, close > ma50, breakout, volratio >= 1.2 and close > ma20, direction == "bullish"])
-    negative = sum([close < ma20, close < ma50, direction == "bearish"])
-    if positive >= 4 and negative <= 1:
+    ma20_previous = float(d["Close"].iloc[-25:-5].mean())
+    rising = ma20 > ma20_previous * 1.002
+    falling = ma20 < ma20_previous * 0.998
+    positive = sum([
+        close > ma20 * 1.005,
+        close > ma50 * 1.005,
+        rising,
+        direction == "bullish",
+        breakout or (volratio >= 1.2 and close > ma20),
+    ])
+    negative = sum([
+        close < ma20 * 0.995,
+        close < ma50 * 0.995,
+        falling,
+        direction == "bearish",
+        volratio >= 1.2 and close < ma20,
+    ])
+    if positive >= 3 and positive >= negative + 2:
         return "BUY"
-    if negative >= 3:
+    if negative >= 3 and negative >= positive + 2:
         return "SELL"
     return "WAIT"
 
