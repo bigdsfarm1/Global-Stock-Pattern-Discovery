@@ -284,46 +284,6 @@ if matches:
 else:
     st.info("Not enough separated historical patterns to compare. Try a longer history or shorter pattern length.")
 st.caption("Pattern dates refer to the historical example. The current pattern is still developing. Matching historical shapes does not establish that a future move will repeat.")
-st.subheader("Past candlestick examples")
-st.write("Separately, explore historical candlestick signals and see what happened after them. These examples do not determine the rise statistics above.")
-ordered_patterns = [p for p in PATTERNS if p in active] + [p for p in PATTERNS if p not in active]
-for p in ordered_patterns:
-    with st.expander(("🟢 Active: " if p in active else "Past examples: ") + p, expanded=p in active):
-        sample_count = int(event_study(d, p, horizon, 0.05)["signals"])
-        if not sample_count:
-            st.write("No completed past examples found for this signal.")
-        if sample_count:
-            st.markdown("**See the actual past examples on a candlestick chart**")
-            valid_events = [i for i in range(len(d) - horizon) if bool(d[p].iloc[i]) and float(d["Close"].iloc[i]) > 0]
-            if valid_events:
-                example_options = list(reversed(valid_events[-20:]))
-                selected_event = st.selectbox(
-                    "Choose a past signal date",
-                    options=example_options,
-                    format_func=lambda i: str(d.index[i].date()),
-                    key="past_event_" + p.replace(" ", "_"),
-                )
-                before = max(0, selected_event - 25)
-                after = min(len(d), selected_event + horizon + 1)
-                section = d.iloc[before:after]
-                historical_chart = go.Figure(data=[go.Candlestick(
-                    x=section.index, open=section["Open"], high=section["High"],
-                    low=section["Low"], close=section["Close"], name="Daily prices"
-                )])
-                historical_chart.add_vline(x=d.index[selected_event], line_color="orange", line_width=2, line_dash="dash")
-                historical_chart.add_vrect(x0=d.index[selected_event], x1=d.index[after - 1],
-                                           fillcolor="LightGreen", opacity=0.12, line_width=0)
-                historical_chart.update_layout(height=360, xaxis_rangeslider_visible=False,
-                                               margin=dict(l=5, r=5, t=25, b=10),
-                                               title="Past signal (orange line) and what happened next (shaded)")
-                st.plotly_chart(historical_chart, use_container_width=True, key="historical_chart_" + p.replace(" ", "_"))
-                start_close = float(d["Close"].iloc[selected_event])
-                next_prices = d.iloc[selected_event + 1:selected_event + horizon + 1]
-                max_gain = float(next_prices["High"].max() / start_close - 1)
-                final_change = float(next_prices["Close"].iloc[-1] / start_close - 1)
-                st.write(f"**This example:** highest rise in the following {horizon} days: {max_gain:+.1%}; change at the end: {final_change:+.1%}.")
-                st.caption("Showing up to 20 most recent completed examples. The orange line marks the historical signal; the shaded area is later price movement. This is hindsight, not a forecast.")
-
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
 fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text=current_structure["name"], annotation_position="top left")
