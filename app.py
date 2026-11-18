@@ -68,11 +68,6 @@ if "scan" in st.session_state:
     if rows:
         result = pd.DataFrame(rows).sort_values(["Signal today", "Historical hit rate", "Historical signals"], ascending=[False, False, False])
         st.subheader("Pattern ranking")
-        st.dataframe(result, use_container_width=True, hide_index=True, column_config={
-            "Historical hit rate": st.column_config.NumberColumn(format="%.1f%%", help="Share of historical signals that reached the target within the chosen window, using future highs."),
-            "Median maximum forward rise": st.column_config.NumberColumn(format="%.1f%%"),
-            "Latest close": st.column_config.NumberColumn(format="%.3f"),
-        }.copy() if False else None)
         # Percentage columns must be scaled before display.
         display = result.copy()
         display["Historical hit rate"] *= 100
