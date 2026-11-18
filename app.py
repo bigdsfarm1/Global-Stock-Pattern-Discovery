@@ -10,8 +10,8 @@ st.caption("Free experimental candlestick research — delayed/incomplete market
 st.warning("Research prototype: scans only the tickers you enter, not every stock worldwide. Historical hit rates do not imply future returns.")
 
 market = st.radio("Market", ["Stocks", "Crypto"], horizontal=True)
-DEFAULT = ("AAPL,MSFT,NVDA,AMD,TSLA,RR.L,FORG.L,BZT.L" if market == "Stocks" else "BTC-USD,ETH-USD,SOL-USD,XRP-USD,DOGE-USD,ADA-USD,AVAX-USD,LINK-USD")
-st.caption("Crypto uses Yahoo Finance symbols like BTC-USD. Coverage is not exhaustive.")
+DEFAULT = ("AAPL,MSFT,NVDA,AMD,TSLA,RR.L,FORG.L,BZT.L" if market == "Stocks" else "BTC-USD,ETH-USD,BNB-USD,XRP-USD,SOL-USD,DOGE-USD,TRX-USD,ADA-USD,LINK-USD,AVAX-USD")
+st.caption("Crypto starter list: 10 major non-stablecoin assets (not a live market-cap ranking). Symbols use Yahoo Finance format like BTC-USD.")
 tickers_text = st.text_area("Watchlist — Yahoo Finance symbols, comma-separated", value=DEFAULT, height=80)
 col1, col2, col3 = st.columns(3)
 with col1:
