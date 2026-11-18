@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
-from scanner import PATTERNS, add_signals, event_study
+from scanner import PATTERNS, add_signals, event_study, chart_shape_matches
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
@@ -104,6 +104,27 @@ a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
 b.metric("20-bar resistance (quote currency)", f"{resistance:,.5f}")
 st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
+st.subheader("Whole-chart pattern discovery")
+st.caption("Compares the shape of the most recent price movement against past multi-candle chart shapes, rather than checking individual candles.")
+shape_window = st.select_slider("Chart shape length (price bars)", options=[15, 30, 60, 90], value=30)
+matches = chart_shape_matches(d, window=shape_window, horizon=horizon, top_n=8)
+if matches:
+    sample = pd.DataFrame(matches)
+    positive = int((sample["end_return"] > 0).sum())
+    st.write(f"Found {len(matches)} separated historical chart shapes. {positive} finished higher after {horizon} bars; {len(matches)-positive} finished lower.")
+    st.caption("Closest historical shapes are NOT forecasts. This is exploratory matching, not independently backtested or statistically calibrated.")
+    view = pd.DataFrame([{
+        "Past pattern ended": m["date"],
+        "Shape difference (lower = closer)": round(m["distance"], 2),
+        "Later closing change": f'{m["end_return"]:+.1%}',
+        "Largest later rise": f'{m["best_rise"]:+.1%}',
+        "Largest later fall": f'{m["worst_fall"]:+.1%}',
+    } for m in matches])
+    st.dataframe(view, hide_index=True, use_container_width=True)
+else:
+    st.info("Not enough separated historical chart shapes for this window. Try more historical data or a shorter chart shape.")
+st.subheader("Individual candle and breakout signals")
+st.caption("Secondary signals; the whole-chart matching above is a separate analysis.")
 st.subheader("Opportunity range from historical patterns")
 st.caption(f"Automatically checks rises of 5%, 10%, 20%, 30%, 50% and 100% within {horizon} future price bars. A hit means the future HIGH touched that level, not that a trade would have earned it.")
 targets = [5, 10, 20, 30, 50, 100]
