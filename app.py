@@ -2,7 +2,16 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
-from scanner import PATTERNS, add_signals, event_study, chart_shape_matches, recognise_chart_structure
+import scanner
+
+PATTERNS = scanner.PATTERNS
+add_signals = scanner.add_signals
+event_study = scanner.event_study
+chart_shape_matches = scanner.chart_shape_matches
+recognise_chart_structure = getattr(scanner, "recognise_chart_structure", None)
+if recognise_chart_structure is None:
+    def recognise_chart_structure(prices):
+        return {"name": "Chart structure unavailable", "explanation": "The chart-pattern module is updating; retry shortly.", "direction": "unknown"}
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
