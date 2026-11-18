@@ -79,6 +79,31 @@ if active:
     st.success("Detected on latest price bar: " + ", ".join(active))
 else:
     st.info("No monitored pattern detected on the latest price bar. This is not a buy signal.")
+# Descriptive assessment, not a probability or trade recommendation.
+recent = d.tail(20)
+support = float(recent["Low"].min())
+resistance = float(recent["High"].max())
+ma20 = float(d["Close"].tail(20).mean())
+vol_baseline = float(d["Volume"].iloc[-21:-1].mean()) if len(d) > 20 else 0
+vol_ratio = float(d["Volume"].iloc[-1]) / vol_baseline if vol_baseline > 0 else 0
+bullish = bool(active) and close > ma20 and vol_ratio >= 1.2
+caution = close < ma20 and not active
+assessment = "Favourable setup to investigate" if bullish else ("Caution" if caution else "Wait / mixed evidence")
+st.subheader("Current assessment")
+with st.container(border=True):
+    st.markdown("**" + assessment + "**")
+    if bullish:
+        st.write("A monitored candlestick pattern is present, price is above its 20-bar average and volume is elevated. This does not guarantee a rise.")
+    elif caution:
+        st.write("Price is below its 20-bar average and no monitored bullish pattern is active. Consider waiting for stronger evidence.")
+    else:
+        st.write("The available signals are mixed or incomplete. There is no clear statistical entry signal.")
+    st.caption("Rule-based research summary; not a validated predictive score.")
+st.subheader("Price levels to watch")
+a, b = st.columns(2)
+a.metric("20-bar support (quote currency)", f"{support:,.5f}")
+b.metric("20-bar resistance (quote currency)", f"{resistance:,.5f}")
+st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
 st.subheader("What did similar patterns do historically?")
 for p in PATTERNS:
     stats = event_study(d, p, horizon, target / 100)
@@ -91,8 +116,20 @@ for p in PATTERNS:
             st.caption("Not enough historical examples to calculate a hit rate.")
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
+fig.add_hline(y=support, line_dash="dot", annotation_text="Recent support")
+fig.add_hline(y=resistance, line_dash="dot", annotation_text="Recent resistance")
 fig.update_layout(height=420, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=20,b=10))
 st.plotly_chart(fig, use_container_width=True)
+st.subheader("Smart Money Tracker")
+with st.container(border=True):
+    if symbol.endswith("-USD"):
+        st.write("Crypto: large wallet transfers may be observable, but they do not prove an institution bought or sold. Verified institutional transaction data is not connected yet.")
+    else:
+        st.write("Institutional ownership changes are not available from the current price-data feed.")
+        st.write("For US securities, SEC 13F filings report holdings quarterly and are typically delayed up to 45 days after quarter end. Changes in reported holdings do not reveal exact trade dates.")
+        st.link_button("Explore SEC institutional filings", "https://www.sec.gov/edgar/search/")
+        st.write("For UK securities, check company RNS/TR-1 major-shareholding announcements. Filings may reflect threshold crossings rather than every trade.")
+    st.caption("No institution-level buy/sell figures are shown until a verifiable filings feed is integrated.")
 st.subheader("Recent news")
 news = news_for(symbol)[:6]
 if not news:
