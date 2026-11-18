@@ -104,25 +104,78 @@ a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
 b.metric("20-bar resistance (quote currency)", f"{resistance:,.5f}")
 st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
-st.subheader("Whole-chart pattern discovery")
-st.caption("Compares the shape of the most recent daily price movement against past multi-day chart shapes, rather than checking individual candles.")
-shape_window = st.select_slider("Chart pattern length (days)", options=[15, 30, 60, 90], value=30)
+st.subheader("🔍 Pattern discovery — explained")
+st.write("We compare the shape of today's chart with older sections of this same investment's chart.")
+shape_window = st.select_slider("Pattern length (days)", options=[15, 30, 60, 90], value=30)
 matches = chart_shape_matches(d, window=shape_window, horizon=horizon, top_n=8)
+
+def describe_shape(prices):
+    """Plain-language description of the path, not a textbook-pattern diagnosis."""
+    start_price = float(prices.iloc[0])
+    last_price = float(prices.iloc[-1])
+    change = last_price / start_price - 1 if start_price else 0
+    midpoint = float(prices.iloc[len(prices)//2])
+    first_leg = midpoint / start_price - 1 if start_price else 0
+    second_leg = last_price / midpoint - 1 if midpoint else 0
+    if first_leg < -0.05 and second_leg > 0.05:
+        return "Drop followed by a recovery"
+    if first_leg > 0.05 and second_leg < -0.05:
+        return "Rise followed by a pullback"
+    if change > 0.08:
+        return "Overall upward trend"
+    if change < -0.08:
+        return "Overall downward trend"
+    return "Sideways or mixed movement"
+
+selected_match = None
 if matches:
-    sample = pd.DataFrame(matches)
-    positive = int((sample["end_return"] > 0).sum())
-    st.write(f"Found {len(matches)} separated historical chart shapes. {positive} finished higher after {horizon} days; {len(matches)-positive} finished lower.")
-    st.caption("Closest historical shapes are NOT forecasts. This is exploratory matching, not independently backtested or statistically calibrated.")
-    view = pd.DataFrame([{
-        "Past pattern ended": m["date"],
-        "Shape difference (lower = closer)": round(m["distance"], 2),
-        "Later closing change": f'{m["end_return"]:+.1%}',
-        "Largest later rise": f'{m["best_rise"]:+.1%}',
-        "Largest later fall": f'{m["worst_fall"]:+.1%}',
-    } for m in matches])
-    st.dataframe(view, hide_index=True, use_container_width=True)
+    st.write(f"**{len(matches)} past chart shapes found** that resemble the latest {shape_window} days.")
+    st.caption("These are similarities, not confirmed trading signals. Select a historical example to see the exact dates and highlighted chart.")
+    match_labels = []
+    for i, m in enumerate(matches):
+        start_date = d.index[m["end"]-shape_window].strftime("%d %b %Y")
+        end_date = d.index[m["end"]-1].strftime("%d %b %Y")
+        match_labels.append(f"Match {i+1}: {start_date} – {end_date}")
+    chosen_match = st.selectbox("Choose a matching pattern", range(len(matches)), format_func=lambda i: match_labels[i])
+    selected_match = matches[chosen_match]
+    past_end = selected_match["end"]
+    past_start = past_end-shape_window
+    historical = d.iloc[past_start:past_end]
+    current = d.iloc[-shape_window:]
+    st.markdown("**What pattern was found?**")
+    st.write(describe_shape(historical["Close"]) + ". The scanner found a similar overall shape in the latest chart.")
+    left, right = st.columns(2)
+    left.metric("Pattern started", historical.index[0].strftime("%d %b %Y"))
+    right.metric("Pattern finished", historical.index[-1].strftime("%d %b %Y"))
+    st.write(f'**What happened next?** Over the following {horizon} days, the closing price changed **{selected_match["end_return"]:+.1%}**. The highest price reached was **{selected_match["best_rise"]:+.1%}** above the pattern-end close, while the lowest was **{selected_match["worst_fall"]:+.1%}** relative to that close.')
+    st.markdown("**See the two shapes side by side**")
+    comparison = go.Figure()
+    def relative_path(values):
+        return (values / float(values.iloc[0]) - 1) * 100
+    comparison.add_trace(go.Scatter(x=list(range(1,shape_window+1)), y=relative_path(historical["Close"]), name="Historical pattern", mode="lines"))
+    comparison.add_trace(go.Scatter(x=list(range(1,shape_window+1)), y=relative_path(current["Close"]), name="Current chart", mode="lines"))
+    comparison.update_layout(height=300, xaxis_title="Day of pattern", yaxis_title="Change from pattern start (%)", margin=dict(l=5,r=5,t=20,b=10))
+    st.plotly_chart(comparison, use_container_width=True)
+    st.caption("Both shapes are rebased to 0% at their starting day. Similarity is calculated using normalised daily closing-price paths; chart lines do not mean the prices were equal.")
+    st.markdown("**Historical candlestick chart — highlighted pattern**")
+    history_context = d.iloc[max(0,past_start-10):min(len(d),past_end+horizon+5)]
+    history_fig = go.Figure(data=[go.Candlestick(x=history_context.index,open=history_context.Open,high=history_context.High,low=history_context.Low,close=history_context.Close,name="Historical prices")])
+    history_fig.add_vrect(x0=historical.index[0], x1=historical.index[-1], fillcolor="RoyalBlue", opacity=0.18, line_width=0, annotation_text="Matched pattern", annotation_position="top left")
+    history_fig.add_vline(x=historical.index[-1], line_dash="dash", annotation_text="Pattern finished")
+    history_fig.update_layout(height=350, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=30,b=10))
+    st.plotly_chart(history_fig, use_container_width=True)
+    with st.expander("View all matching dates and results"):
+        view = pd.DataFrame([{
+            "Pattern start": d.index[m["end"]-shape_window].strftime("%d %b %Y"),
+            "Pattern finish": d.index[m["end"]-1].strftime("%d %b %Y"),
+            "Later closing change": f'{m["end_return"]:+.1%}',
+            "Largest later rise": f'{m["best_rise"]:+.1%}',
+            "Largest later fall": f'{m["worst_fall"]:+.1%}',
+        } for m in matches])
+        st.dataframe(view, hide_index=True, use_container_width=True)
 else:
-    st.info("Not enough separated historical chart shapes for this window. Try more historical data or a shorter chart pattern.")
+    st.info("Not enough separated historical patterns to compare. Try a longer history or shorter pattern length.")
+st.caption("Pattern dates refer to the historical example. The current pattern is still developing. Matching historical shapes does not establish that a future move will repeat.")
 st.subheader("Individual candle and breakout signals")
 st.caption("Secondary signals; the whole-chart matching above is a separate analysis.")
 st.subheader("Opportunity range from historical patterns")
@@ -138,6 +191,7 @@ for p in PATTERNS:
         st.caption("These are overlapping historical observations, not independent probabilities or future price targets. Larger rises are generally less common.")
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
+fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text="Current pattern", annotation_position="top left")
 fig.add_hline(y=support, line_dash="dot", annotation_text="Recent support")
 fig.add_hline(y=resistance, line_dash="dot", annotation_text="Recent resistance")
 fig.update_layout(height=420, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=20,b=10))
