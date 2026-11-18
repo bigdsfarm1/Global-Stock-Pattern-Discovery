@@ -315,7 +315,7 @@ for p in ordered_patterns:
                 historical_chart.update_layout(height=360, xaxis_rangeslider_visible=False,
                                                margin=dict(l=5, r=5, t=25, b=10),
                                                title="Past signal (orange line) and what happened next (shaded)")
-                st.plotly_chart(historical_chart, use_container_width=True)
+                st.plotly_chart(historical_chart, use_container_width=True, key="historical_chart_" + p.replace(" ", "_"))
                 start_close = float(d["Close"].iloc[selected_event])
                 next_prices = d.iloc[selected_event + 1:selected_event + horizon + 1]
                 max_gain = float(next_prices["High"].max() / start_close - 1)
