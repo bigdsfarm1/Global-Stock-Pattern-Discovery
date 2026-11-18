@@ -37,7 +37,8 @@ def show_market_opportunities():
         age = (datetime.now(timezone.utc) - generated.to_pydatetime()).total_seconds() / 3600
         if age > 36:
             st.warning("Results are over 36 hours old. Check the scheduled workflow before using them.")
-    st.caption(f"Coverage: {summary.get('analysed', len(data))} of {summary.get('requested', '?')} selected assets. Not every listed share or commodity worldwide.")
+    st.caption(f"Latest batch: {summary.get('analysed', len(data))} usable of {summary.get('batch_requested', summary.get('requested', '?'))} attempted; {summary.get('stored_assets', len(data))} assets retained from rolling scans. Universe: {summary.get('requested', '?')} symbols.")
+    st.caption("Coverage currently includes US-listed shares, selected UK shares, crypto and commodity futures. Global exchange coverage is not complete; earlier batch results may be older.")
     if data.empty:
         st.info("The scan returned no usable asset data.")
         return
