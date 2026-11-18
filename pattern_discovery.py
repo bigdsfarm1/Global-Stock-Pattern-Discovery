@@ -41,7 +41,15 @@ def discover_patterns_for_window(close, window, threshold=0.10, ohlc=None):
             break
     if len(matches) < 3:
         return empty
-    return {"pattern_window":window, "pattern_matches":len(matches),
+    examples = [{"end_index": int(x[1]), "return_pct": round(x[2]*100, 2),
+                 "similarity_pct": round(float(np.exp(-x[0]*8)*100), 1)}
+                for x in matches]
+    return {"examples": examples, "positive_count": sum(x[2]>0 for x in matches),
+            "negative_count": sum(x[2]<0 for x in matches),
+            "unchanged_count": sum(x[2]==0 for x in matches),
+            "best_return_pct": round(max(x[2] for x in matches)*100,2),
+            "worst_return_pct": round(min(x[2] for x in matches)*100,2),
+            "pattern_window":window, "pattern_matches":len(matches),
             "pattern_similarity":round(float(np.exp(-np.mean([x[0] for x in matches])*8)*100),1),
             "pattern_historical_hit_pct":round(100*sum(x[2]>=threshold for x in matches)/len(matches),1),
             "pattern_median_forward_pct":round(float(np.median([x[2] for x in matches])*100),2),
