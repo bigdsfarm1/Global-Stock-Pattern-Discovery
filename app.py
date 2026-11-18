@@ -284,37 +284,6 @@ if matches:
 else:
     st.info("Not enough separated historical patterns to compare. Try a longer history or shorter pattern length.")
 st.caption("Pattern dates refer to the historical example. The current pattern is still developing. Matching historical shapes does not establish that a future move will repeat.")
-st.subheader("Possible rise from today's price")
-st.write(f"Starting from the latest available price of **{close:,.5f}** (quote currency), these are example higher price levels over the next **{horizon} days**.")
-st.caption("The figures below are historical frequencies for this asset, NOT predicted chances or guaranteed targets. They use closing prices, not candlestick signals or intraday highs.")
-targets = [5, 10, 20, 30, 50, 100]
-# Use non-overlapping completed forward periods to reduce repeated counting.
-past_closes = d["Close"].astype(float)
-sample_indices = list(range(0, len(d) - horizon, horizon))
-forward_returns = []
-for i in sample_indices:
-    entry = float(past_closes.iloc[i])
-    later = float(past_closes.iloc[i + horizon])
-    if entry > 0 and pd.notna(entry) and pd.notna(later):
-        forward_returns.append(later / entry - 1)
-sample_count = len(forward_returns)
-rows = []
-for target in targets:
-    hits = sum(r >= target / 100 for r in forward_returns)
-    rows.append({
-        "Rise from current": f"+{target}%",
-        "Price level": f"{close * (1 + target / 100):,.5f}",
-        "Past periods ending at/above": f"{hits} of {sample_count}" if sample_count else "No data",
-        "Historical frequency": f"{hits / sample_count:.0%}" if sample_count else "N/A",
-    })
-st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-if sample_count < 20:
-    st.warning(f"Only {sample_count} non-overlapping historical periods are available. Too few to estimate dependable chances.")
-else:
-    st.caption(f"Based on {sample_count} non-overlapping {horizon}-day periods. Market conditions change, and this sample may not represent the future.")
-if sample_count:
-    st.write(f"**Historical average change after {horizon} days:** {sum(forward_returns) / sample_count:+.1%}. This is a descriptive average, not a forecast.")
-st.caption("Example: a 20% historical frequency means that 20% of the sampled past periods ended at least that much higher. It does NOT mean a 20% probability of that happening next.")
 st.subheader("Past candlestick examples")
 st.write("Separately, explore historical candlestick signals and see what happened after them. These examples do not determine the rise statistics above.")
 ordered_patterns = [p for p in PATTERNS if p in active] + [p for p in PATTERNS if p not in active]
