@@ -107,17 +107,39 @@ up_count = sum(m["end_return"] > 0 for m in assessment_matches)
 down_count = sum(m["end_return"] < 0 for m in assessment_matches)
 historical_bias = ("up" if match_count >= 5 and up_count / match_count >= 0.7 else
                    "down" if match_count >= 5 and down_count / match_count >= 0.7 else "mixed")
-positive_signals = [close > ma20, close > ma50, recent_breakout, vol_ratio >= 1.2 and close > ma20, shape_direction == "bullish"]
-negative_signals = [close < ma20, close < ma50, shape_direction == "bearish"]
-if sum(positive_signals) >= 4 and sum(negative_signals) <= 1 and historical_bias != "down":
+# Balanced directional assessment: trend is primary; breakouts and volume add context.
+# Avoid requiring rare events for every BUY and avoid treating absent bullish signals as bearish.
+ma20_previous = float(d["Close"].iloc[-25:-5].mean()) if len(d) >= 25 else ma20
+ma20_rising = ma20 > ma20_previous * 1.002
+ma20_falling = ma20 < ma20_previous * 0.998
+bullish_checks = {
+    "Price above 20-day average": close > ma20 * 1.005,
+    "Price above 50-day average": close > ma50 * 1.005,
+    "Short-term average rising": ma20_rising,
+    "Bullish chart structure": shape_direction == "bullish",
+    "Recent breakout or strong upward volume": recent_breakout or (vol_ratio >= 1.2 and close > ma20),
+}
+bearish_checks = {
+    "Price below 20-day average": close < ma20 * 0.995,
+    "Price below 50-day average": close < ma50 * 0.995,
+    "Short-term average falling": ma20_falling,
+    "Bearish chart structure": shape_direction == "bearish",
+    "Weak price despite high volume": vol_ratio >= 1.2 and close < ma20,
+}
+bullish_score = sum(bullish_checks.values())
+bearish_score = sum(bearish_checks.values())
+# Three aligned trend indicators are enough for a directional setup; mixed signals stay neutral.
+if bullish_score >= 3 and bullish_score >= bearish_score + 2:
     action = "BUY setup — investigate"
-    explanation = "Several technical signals favour an upward move. Check valuation, news and risk before considering any purchase."
-elif sum(negative_signals) >= 3 and historical_bias != "up":
+    explanation = "Several independent trend checks are bullish. This is a research signal, not a recommendation to buy."
+elif bearish_score >= 3 and bearish_score >= bullish_score + 2:
     action = "SELL / avoid risk signal"
-    explanation = "The technical picture is weak. This may justify reviewing exposure, but does not mean every existing holder should sell."
+    explanation = "Several trend checks are bearish. This is a risk warning, not a recommendation that every holder should sell."
 else:
     action = "HOLD / wait"
-    explanation = "The technical evidence is mixed or insufficient for a clear directional setup. HOLD is a neutral research label, not a recommendation to retain a position."
+    explanation = "Bullish and bearish evidence is mixed or too weak to justify a directional signal. HOLD means no clear setup."
+positive_signals = list(bullish_checks.values())
+negative_signals = list(bearish_checks.values())
 st.subheader("Market trend")
 trend_span = st.segmented_control("Trend period", options=["Short term (20 days)", "Medium term (50 days)", "Long term (200 days)"], default="Medium term (50 days)", key="trend_span")
 trend_days = 20 if trend_span.startswith("Short") else (50 if trend_span.startswith("Medium") else 200)
@@ -146,7 +168,7 @@ st.subheader("Current assessment — Buy / Hold / Sell")
 with st.container(border=True):
     st.markdown("### " + action)
     st.write(explanation)
-    st.write(f"**Technical checks:** {sum(positive_signals)} of 5 bullish; {sum(negative_signals)} of 3 bearish.")
+    st.write(f"**Technical checks:** {bullish_score} of 5 bullish; {bearish_score} of 5 bearish.")
     if match_count:
         st.write(f"**Similar chart shapes:** {up_count} of {match_count} finished higher and {down_count} finished lower after {horizon} days.")
     else:
