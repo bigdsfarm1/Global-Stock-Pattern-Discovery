@@ -47,8 +47,10 @@ jobs:
           cache: pip
       - run: pip install pandas numpy yfinance
         if: steps.window.outputs.run == 'true'
-      - name: Scan stocks, crypto and commodities
+      - name: Scan rolling stocks, crypto and commodities batch
         if: steps.window.outputs.run == 'true'
+        env:
+          SCAN_BATCH_SIZE: '120'
         run: python background_scan.py
       - uses: actions/upload-artifact@v4
         if: steps.window.outputs.run == 'true'
@@ -61,7 +63,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f background_results/ranked_opportunities.csv background_results/scan_summary.json
+          git add -f background_results/ranked_opportunities.csv background_results/scan_summary.json background_results/scan_state.json
           if ! git diff --cached --quiet; then
             git commit -m "Update published background market scan results [skip ci]"
             git push
