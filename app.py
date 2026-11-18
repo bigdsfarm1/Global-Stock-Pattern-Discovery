@@ -16,11 +16,17 @@ if recognise_chart_structure is None:
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
-st.caption("Search one stock or cryptocurrency at a time. Free historical research; not trading advice.")
+st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
 
-market = st.radio("Choose a market", ["Stocks", "Crypto"], horizontal=True)
-examples = {"Stocks": "AAPL", "Crypto": "BTC-USD"}
-query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
+market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
+COMMODITIES = {"Gold futures": "GC=F", "Silver futures": "SI=F", "Crude oil (WTI) futures": "CL=F", "Brent crude futures": "BZ=F", "Natural gas futures": "NG=F", "Copper futures": "HG=F", "Corn futures": "ZC=F", "Wheat futures": "ZW=F", "Soybean futures": "ZS=F", "Platinum futures": "PL=F"}
+examples = {"Stocks": "AAPL", "Crypto": "BTC-USD", "Commodities": "GC=F"}
+if market == "Commodities":
+    commodity = st.selectbox("Choose a commodity", list(COMMODITIES))
+    st.caption("Yahoo Finance futures symbols are used as price proxies. Futures prices are not spot prices and may be affected by contract rolls.")
+    query = COMMODITIES[commodity]
+else:
+    query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
 @st.cache_data(ttl=3600, show_spinner=False)
 def search_symbols(q):
     try:
@@ -28,7 +34,7 @@ def search_symbols(q):
     except Exception:
         return []
 
-matches = search_symbols(query.strip()) if len(query.strip()) >= 2 else []
+matches = search_symbols(query.strip()) if market != "Commodities" and len(query.strip()) >= 2 else []
 choices = []
 for item in matches:
     symbol = item.get("symbol", "")
@@ -47,7 +53,7 @@ else:
     if query.strip():
         st.caption("No matching suggestions? Enter an exact Yahoo Finance ticker. Crypto tickers usually end in -USD.")
 if not symbol:
-    st.info("Start by searching for a company or cryptocurrency above.")
+    st.info("Start by selecting or searching for an asset above.")
     st.stop()
 with st.expander("Analysis settings"):
     period = st.selectbox("Historical data", ["1y", "2y", "5y"], index=1)
@@ -102,10 +108,12 @@ def news_for(ticker):
         return []
 
 if st.button("🔎 Analyse this investment", type="primary", use_container_width=True):
-    st.session_state["selection"] = (symbol, period, horizon)
+    st.session_state["selection"] = (symbol, period, horizon, market)
 if "selection" not in st.session_state:
     st.stop()
-symbol, period, horizon = st.session_state["selection"]
+selection = st.session_state["selection"]
+symbol, period, horizon = selection[:3]
+selected_market = selection[3] if len(selection) > 3 else "Stocks"
 st.subheader(f"Analysis: {symbol}")
 try:
     prices = prices_for(symbol, period)
@@ -320,7 +328,7 @@ if matches:
         hovermode="x", dragmode="pan", showlegend=False,
         margin=dict(l=8, r=12, t=45, b=12),
     )
-    if not symbol.endswith("-USD"):
+    if selected_market != "Crypto":
         history_fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
     st.plotly_chart(
         history_fig, use_container_width=True,
@@ -383,7 +391,7 @@ fig.update_layout(
     dragmode="pan",
     showlegend=False,
 )
-fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])] if not symbol.endswith("-USD") else [])
+fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])] if selected_market != "Crypto" else [])
 fig.update_traces(
     hovertemplate=None,
     selector=dict(type="candlestick"),
@@ -396,7 +404,7 @@ st.plotly_chart(
 )
 st.subheader("Smart Money Tracker")
 with st.container(border=True):
-    if symbol.endswith("-USD"):
+    if selected_market == "Crypto":
         st.write("Crypto: large wallet transfers may be observable, but they do not prove an institution bought or sold. Verified institutional transaction data is not connected yet.")
     else:
         st.write("Institutional ownership changes are not available from the current price-data feed.")
