@@ -4,6 +4,49 @@ import numpy as np
 WINDOWS = (1, 3, 5, 10, 20, 40)
 HORIZON = 10
 
+def discover_patterns_for_window(close, window, threshold=0.10, ohlc=None):
+    """Evaluate exactly one window, using only earlier fully observed analog outcomes."""
+    import numpy as np
+    values = np.asarray(close, dtype=float)
+    n = len(values)
+    empty = {"pattern_window":window, "pattern_matches":0, "pattern_similarity":None,
+             "pattern_historical_hit_pct":None, "pattern_median_forward_pct":None,
+             "pattern_target_pct":round(threshold*100)}
+    if n < 2*window + HORIZON + 10 or not np.isfinite(values).all() or np.any(values <= 0):
+        return empty
+    candles = np.asarray(ohlc, dtype=float) if ohlc is not None else None
+    if window == 1 and (candles is None or candles.shape != (n, 4)):
+        return empty
+    def shape(end):
+        if window == 1:
+            op, hi, lo, cl = candles[end-1]
+            span = max(hi-lo, 1e-12)
+            return np.array([(cl-op)/span, (min(op,cl)-lo)/span,
+                             (hi-max(op,cl))/span])
+        segment = np.log(values[end-window:end]/values[end-window])
+        return segment - np.linspace(0,1,window)*segment[-1]*0.25
+    current = shape(n)
+    candidates = []
+    for end in range(window, n-HORIZON+1):
+        past = shape(end)
+        distance = float(np.sqrt(np.mean((current-past)**2)))
+        outcome = float(values[end+HORIZON-1]/values[end-1]-1)
+        candidates.append((distance,end,outcome))
+    candidates.sort()
+    matches = []
+    for item in candidates:
+        if all(abs(item[1]-m[1]) >= max(window,HORIZON) for m in matches):
+            matches.append(item)
+        if len(matches) == 5:
+            break
+    if len(matches) < 3:
+        return empty
+    return {"pattern_window":window, "pattern_matches":len(matches),
+            "pattern_similarity":round(float(np.exp(-np.mean([x[0] for x in matches])*8)*100),1),
+            "pattern_historical_hit_pct":round(100*sum(x[2]>=threshold for x in matches)/len(matches),1),
+            "pattern_median_forward_pct":round(float(np.median([x[2] for x in matches])*100),2),
+            "pattern_target_pct":round(threshold*100)}
+
 def discover_patterns(close, threshold=0.10, ohlc=None):
     """Compare today's entire normalized price path with prior paths in the same asset.
 
