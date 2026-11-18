@@ -118,8 +118,7 @@ if len(prices) < max(40, horizon + 21):
 d = add_signals(prices)
 close = float(d["Close"].iloc[-1])
 auto_refresh_quote(symbol)
-st.metric("Latest historical daily close (quote currency)", f"{close:,.5f}")
-st.caption("Daily closing prices are used for chart-pattern analysis; intraday quotes do not change historical signals.")
+
 active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
 if active:
     st.success("Detected on the latest trading day: " + ", ".join(active))
