@@ -48,6 +48,15 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(technical_label(add_signals(d.iloc[:250])),
                          technical_label(add_signals(altered.iloc[:250])))
 
+    def test_flat_market_does_not_force_a_trade(self):
+        from scanner import add_signals
+        close = np.full(240, 100.0)
+        d = pd.DataFrame({"Open": close, "High": close * 1.001,
+                          "Low": close * .999, "Close": close,
+                          "Volume": np.full(240, 100000)},
+                         index=pd.bdate_range("2024-01-01", periods=240))
+        self.assertEqual(technical_label(add_signals(d)), "WAIT")
+
     def test_label_uses_only_prior_prices(self):
         d = self.make_prices(200)
         from scanner import add_signals
