@@ -59,6 +59,41 @@ def prices_for(ticker, history):
     d = yf.Ticker(ticker).history(period=history, auto_adjust=True)
     return d[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]) if not d.empty else d
 
+@st.cache_data(ttl=45, show_spinner=False)
+def latest_quote(ticker):
+    """Return Yahoo's latest available minute observation, not a guaranteed live quote."""
+    try:
+        intraday = yf.Ticker(ticker).history(
+            period="5d", interval="1m", prepost=True, auto_adjust=False
+        )
+        if intraday.empty or "Close" not in intraday:
+            return None
+        valid = intraday["Close"].dropna()
+        if valid.empty:
+            return None
+        return {"price": float(valid.iloc[-1]), "timestamp": valid.index[-1]}
+    except Exception:
+        return None
+
+
+@st.fragment(run_every="60s")
+def auto_refresh_quote(ticker):
+    st.caption("Yahoo quote checks automatically every 60 seconds while this page is open.")
+    if st.button("Refresh price now", key="refresh_quote_now"):
+        latest_quote.clear()
+    quote = latest_quote(ticker)
+    if quote is None:
+        st.info("Intraday quote unavailable. The historical closing price is shown below.")
+        return
+    st.metric("Latest available Yahoo price (quote currency)", f'{quote["price"]:,.5f}')
+    timestamp = quote["timestamp"]
+    st.caption(
+        f'Last price observation: {timestamp.strftime("%d %b %Y %H:%M %Z")}. '
+        "Yahoo prices may be delayed, stale or unavailable when markets are closed. "
+        "This is not a guaranteed real-time executable quote."
+    )
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def news_for(ticker):
     try:
@@ -82,8 +117,9 @@ if len(prices) < max(40, horizon + 21):
     st.stop()
 d = add_signals(prices)
 close = float(d["Close"].iloc[-1])
-st.metric("Latest available closing price (quote currency)", f"{close:,.5f}")
-st.caption("May be delayed; the price is not a live executable quote.")
+auto_refresh_quote(symbol)
+st.metric("Latest historical daily close (quote currency)", f"{close:,.5f}")
+st.caption("Daily closing prices are used for chart-pattern analysis; intraday quotes do not change historical signals.")
 active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
 if active:
     st.success("Detected on the latest trading day: " + ", ".join(active))
