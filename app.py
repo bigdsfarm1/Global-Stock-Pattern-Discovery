@@ -88,26 +88,46 @@ if active:
     st.success("Detected on latest price bar: " + ", ".join(active))
 else:
     st.info("No monitored pattern detected on the latest price bar. This is not a buy signal.")
-# Descriptive assessment, not a probability or trade recommendation.
+# Rule-based technical action labels, not personal investment instructions.
 recent = d.tail(20)
 support = float(recent["Low"].min())
 resistance = float(recent["High"].max())
 ma20 = float(d["Close"].tail(20).mean())
+ma50 = float(d["Close"].tail(50).mean())
 vol_baseline = float(d["Volume"].iloc[-21:-1].mean()) if len(d) > 20 else 0
 vol_ratio = float(d["Volume"].iloc[-1]) / vol_baseline if vol_baseline > 0 else 0
-bullish = bool(active) and close > ma20 and vol_ratio >= 1.2
-caution = close < ma20 and not active
-assessment = "Favourable setup to investigate" if bullish else ("Caution" if caution else "Wait / mixed evidence")
-st.subheader("Current assessment")
+recent_breakout = bool(d["20-day breakout"].tail(3).any())
+shape = recognise_chart_structure(d.tail(30))
+shape_direction = shape.get("direction", "unknown")
+# Historical matches support context, but are too few and selected to be probabilities.
+assessment_matches = chart_shape_matches(d, window=30, horizon=horizon, top_n=8)
+match_count = len(assessment_matches)
+up_count = sum(m["end_return"] > 0 for m in assessment_matches)
+down_count = sum(m["end_return"] < 0 for m in assessment_matches)
+historical_bias = ("up" if match_count >= 5 and up_count / match_count >= 0.7 else
+                   "down" if match_count >= 5 and down_count / match_count >= 0.7 else "mixed")
+positive_signals = [close > ma20, close > ma50, recent_breakout, vol_ratio >= 1.2 and close > ma20, shape_direction == "bullish"]
+negative_signals = [close < ma20, close < ma50, shape_direction == "bearish"]
+if sum(positive_signals) >= 4 and sum(negative_signals) <= 1 and historical_bias != "down":
+    action = "BUY setup — investigate"
+    explanation = "Several technical signals favour an upward move. Check valuation, news and risk before considering any purchase."
+elif sum(negative_signals) >= 3 and historical_bias != "up":
+    action = "SELL / avoid risk signal"
+    explanation = "The technical picture is weak. This may justify reviewing exposure, but does not mean every existing holder should sell."
+else:
+    action = "HOLD / wait"
+    explanation = "The technical evidence is mixed or insufficient for a clear directional setup. HOLD is a neutral research label, not a recommendation to retain a position."
+st.subheader("Current assessment — Buy / Hold / Sell")
 with st.container(border=True):
-    st.markdown("**" + assessment + "**")
-    if bullish:
-        st.write("A monitored candlestick pattern is present, price is above its 20-bar average and volume is elevated. This does not guarantee a rise.")
-    elif caution:
-        st.write("Price is below its 20-bar average and no monitored bullish pattern is active. Consider waiting for stronger evidence.")
+    st.markdown("### " + action)
+    st.write(explanation)
+    st.write(f"**Technical checks:** {sum(positive_signals)} of 5 bullish; {sum(negative_signals)} of 3 bearish.")
+    if match_count:
+        st.write(f"**Similar chart shapes:** {up_count} of {match_count} finished higher and {down_count} finished lower after {horizon} days.")
     else:
-        st.write("The available signals are mixed or incomplete. There is no clear statistical entry signal.")
-    st.caption("Rule-based research summary; not a validated predictive score.")
+        st.write("**Similar chart shapes:** insufficient history for comparison.")
+    st.caption("Evidence confidence: LOW — this rule-based signal has not been independently validated. Historical matches are selected, not unbiased odds.")
+    st.caption("Based on available delayed daily prices and patterns only. News, fundamentals, institutional filings, your entry price and personal risk tolerance are NOT included in this verdict.")
 st.subheader("Price levels to watch")
 a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
