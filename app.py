@@ -319,13 +319,51 @@ if matches:
 else:
     st.info("Not enough separated historical patterns to compare. Try a longer history or shorter pattern length.")
 st.caption("Pattern dates refer to the historical example. The current pattern is still developing. Matching historical shapes does not establish that a future move will repeat.")
-st.subheader("Price chart")
-fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
-fig.add_vrect(x0=d.index[-shape_window], x1=d.index[-1], fillcolor="RoyalBlue", opacity=0.12, line_width=0, annotation_text=current_structure["name"], annotation_position="top left")
-fig.add_hline(y=support, line_dash="dot", annotation_text="Recent support")
-fig.add_hline(y=resistance, line_dash="dot", annotation_text="Recent resistance")
-fig.update_layout(height=420, xaxis_rangeslider_visible=False, margin=dict(l=5,r=5,t=20,b=10))
-st.plotly_chart(fig, use_container_width=True)
+st.subheader("Candlestick chart")
+st.caption("Interactive vector chart: pinch to zoom on mobile, drag to inspect candles, and double-tap to reset.")
+chart_range = st.select_slider(
+    "Candles to display",
+    options=[30, 60, 90, 180, 365, "All"],
+    value=90,
+    key="chart_candles",
+)
+chart_data = d if chart_range == "All" else d.tail(chart_range)
+fig = go.Figure()
+fig.add_trace(go.Candlestick(
+    x=chart_data.index,
+    open=chart_data["Open"],
+    high=chart_data["High"],
+    low=chart_data["Low"],
+    close=chart_data["Close"],
+    name=symbol,
+    increasing=dict(line=dict(color="#00a884", width=1.3), fillcolor="#00a884"),
+    decreasing=dict(line=dict(color="#e65353", width=1.3), fillcolor="#e65353"),
+))
+fig.update_layout(
+    height=590,
+    template="plotly_dark",
+    paper_bgcolor="#101720",
+    plot_bgcolor="#101720",
+    font=dict(size=13, color="#e8edf4"),
+    margin=dict(l=8, r=12, t=18, b=12),
+    xaxis_rangeslider_visible=False,
+    xaxis=dict(showgrid=True, gridcolor="#293542", showline=False, rangeslider_visible=False),
+    yaxis=dict(showgrid=True, gridcolor="#293542", side="right", fixedrange=False),
+    hovermode="x",
+    dragmode="pan",
+    showlegend=False,
+)
+fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])] if not symbol.endswith("-USD") else [])
+fig.update_traces(
+    hovertemplate=None,
+    selector=dict(type="candlestick"),
+)
+st.plotly_chart(
+    fig,
+    use_container_width=True,
+    config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False,
+            "modeBarButtonsToRemove": ["lasso2d", "select2d"]},
+)
 st.subheader("Smart Money Tracker")
 with st.container(border=True):
     if symbol.endswith("-USD"):
