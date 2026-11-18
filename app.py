@@ -244,8 +244,8 @@ a.metric("20-day support (quote currency)", f"{support:,.5f}")
 b.metric("20-day resistance (quote currency)", f"{resistance:,.5f}")
 st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
 st.subheader("🔍 Pattern discovery — explained")
-st.write("We compare the shape of today's chart with older sections of this same investment's chart.")
-shape_window = st.select_slider("Pattern length (days)", options=[15, 30, 60, 90], value=30)
+st.write("Choose any pattern length from 1 to 90 days. One-day matches compare candle shape; longer matches compare price-chart paths.")
+shape_window = st.slider("Pattern length (days)", min_value=1, max_value=90, value=30, step=1)
 matches = chart_shape_matches(d, window=shape_window, horizon=horizon, top_n=8)
 
 def describe_shape(prices):
