@@ -1,0 +1,32 @@
+name: App smoke tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.py'
+      - 'scanner.py'
+      - 'pattern_discovery.py'
+      - 'pattern_validation_ui.py'
+      - 'background_scan.py'
+      - 'market_opportunities.py'
+      - 'test_app_smoke.py'
+      - 'requirements.txt'
+      - '.github/workflows/app-smoke-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q app.py scanner.py pattern_discovery.py pattern_validation_ui.py background_scan.py market_opportunities.py
+      - name: Run offline scanner tests
+        run: python -m unittest -v test_app_smoke
