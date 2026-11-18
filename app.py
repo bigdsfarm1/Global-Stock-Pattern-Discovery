@@ -66,6 +66,78 @@ def news_for(ticker):
     except Exception:
         return []
 
+st.subheader("🔎 Automatically discovered pattern matches")
+st.write("Scan a starter watchlist for stocks whose **current chart shape** closely resembles earlier periods in their own history.")
+st.caption("Starter watchlist only, not every share worldwide. Free data can be delayed or incomplete. Results are research leads, not verified odds.")
+scan_universe = {
+    "US shares": ["AAPL", "MSFT", "NVDA", "TSLA", "AMD", "PLTR"],
+    "UK shares": ["BARC.L", "RR.L", "SHEL.L", "LLOY.L", "VOD.L", "BP.L"],
+    "Crypto": ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD"],
+}
+scan_market = st.selectbox("Markets to scan", ["All starter markets", *scan_universe], key="discovery_market")
+scan_days = st.selectbox("Match chart length (days)", [15, 30, 60], index=1, key="discovery_days")
+scan_horizon = st.selectbox("Check outcomes after (days)", [10, 20, 30, 60], index=2, key="discovery_horizon")
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def discover_patterns(symbols, days, future_days):
+    found = []
+    errors = []
+    for ticker in symbols:
+        try:
+            hist = prices_for(ticker, "5y")
+            if len(hist) < days * 2 + future_days + 30:
+                errors.append(ticker)
+                continue
+            candidates = chart_shape_matches(hist, window=days, horizon=future_days, top_n=8)
+            if len(candidates) < 4:
+                continue
+            similarity = float(candidates[0]["distance"])
+            ups = sum(m["end_return"] > 0 for m in candidates)
+            gains20 = sum(m["best_rise"] >= 0.20 for m in candidates)
+            avg_change = sum(m["end_return"] for m in candidates) / len(candidates)
+            found.append({
+                "Ticker": ticker, "Match score": similarity,
+                "Past matches": len(candidates),
+                "Finished higher": ups,
+                "Reached +20%": gains20,
+                "Average end change": avg_change,
+                "Latest close": float(hist["Close"].iloc[-1]),
+                "Match dates": ", ".join(m["date"] for m in candidates[:4]),
+            })
+        except Exception:
+            errors.append(ticker)
+    return found, errors
+
+if st.button("Find pattern opportunities", use_container_width=True):
+    symbols = tuple(t for group in (scan_universe.values() if scan_market == "All starter markets" else [scan_universe[scan_market]]) for t in group)
+    with st.spinner(f"Comparing historical charts for {len(symbols)} assets..."):
+        st.session_state["discovery_results"] = discover_patterns(symbols, scan_days, scan_horizon)
+        st.session_state["discovery_settings"] = (scan_market, scan_days, scan_horizon)
+if "discovery_results" in st.session_state:
+    found, errors = st.session_state["discovery_results"]
+    settings = st.session_state.get("discovery_settings")
+    if settings != (scan_market, scan_days, scan_horizon):
+        st.info("Settings changed. Run the scan again to update the results.")
+    elif not found:
+        st.info("No qualifying chart matches found in this sample. Try another market or chart length.")
+    else:
+        st.caption("Sorted by historical shape similarity (lower distance = closer shape). This is not a ranking of expected returns.")
+        ranked = sorted(found, key=lambda x: x["Match score"])
+        for result in ranked:
+            with st.expander(f'{result["Ticker"]} — {result["Past matches"]} similar past charts'):
+                st.write(f'**Similarity distance:** {result["Match score"]:.2f} (lower means more similar)')
+                st.write(f'**Finished higher:** {result["Finished higher"]} of {result["Past matches"]} after {scan_horizon} days')
+                st.write(f'**Reached +20% at any point:** {result["Reached +20%"]} of {result["Past matches"]}')
+                st.write(f'**Average end change:** {result["Average end change"]:+.1%}')
+                st.write(f'**Historical match dates:** {result["Match dates"]}')
+                st.caption("These matches were selected because they resemble today's chart. The outcome frequencies are in-sample, based on very few examples, and are NOT reliable probabilities.")
+                if st.button(f'Analyse {result["Ticker"]}', key="discovery_select_" + result["Ticker"]):
+                    st.session_state["selection"] = (result["Ticker"], "5y", scan_horizon)
+                    st.rerun()
+    if errors:
+        st.caption(f"Skipped {len(errors)} assets because data was missing or unavailable.")
+st.divider()
+
 if st.button("🔎 Analyse this investment", type="primary", use_container_width=True):
     st.session_state["selection"] = (symbol, period, horizon)
 if "selection" not in st.session_state:
