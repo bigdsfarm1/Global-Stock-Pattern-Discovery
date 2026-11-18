@@ -9,7 +9,9 @@ st.title("📈 Global Stock Pattern Discovery")
 st.caption("Free experimental candlestick research — delayed/incomplete market data; not financial advice.")
 st.warning("Research prototype: scans only the tickers you enter, not every stock worldwide. Historical hit rates do not imply future returns.")
 
-DEFAULT = "AAPL,MSFT,NVDA,AMD,TSLA,RR.L,FORG.L,BZT.L"
+market = st.radio("Market", ["Stocks", "Crypto"], horizontal=True)
+DEFAULT = ("AAPL,MSFT,NVDA,AMD,TSLA,RR.L,FORG.L,BZT.L" if market == "Stocks" else "BTC-USD,ETH-USD,SOL-USD,XRP-USD,DOGE-USD,ADA-USD,AVAX-USD,LINK-USD")
+st.caption("Crypto uses Yahoo Finance symbols like BTC-USD. Coverage is not exhaustive.")
 tickers_text = st.text_area("Watchlist — Yahoo Finance symbols, comma-separated", value=DEFAULT, height=80)
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -33,9 +35,9 @@ def get_news(symbol):
     except Exception:
         return []
 
-symbols = list(dict.fromkeys(s.strip().upper() for s in tickers_text.replace("\n", ",").split(",") if s.strip()))[:25]
-if len([s for s in tickers_text.replace("\n", ",").split(",") if s.strip()]) > 25:
-    st.info("Free prototype limit: first 25 tickers are scanned.")
+symbols = list(dict.fromkeys(s.strip().upper() for s in tickers_text.replace("\n", ",").split(",") if s.strip()))[:100]
+if len([s for s in tickers_text.replace("\n", ",").split(",") if s.strip()]) > 100:
+    st.info("Free prototype limit: first 100 tickers are scanned.")
 if st.button("Run pattern scan", type="primary"):
     if not symbols:
         st.error("Enter at least one ticker.")
@@ -73,7 +75,15 @@ if "scan" in st.session_state:
         display["Historical hit rate"] *= 100
         display["Median maximum forward rise"] *= 100
         st.caption("Historical hit = price reached target at any future daily HIGH within the window; incomplete forward windows excluded. Signals may overlap.")
-        st.dataframe(display, hide_index=True, use_container_width=True, column_config={
+        st.subheader("Easy-read results")
+        for _, item in display.head(12).iterrows():
+            with st.container(border=True):
+                st.write(str(item["Ticker"]) + " — " + str(item["Pattern"]))
+                st.write("Current signal: " + ("Detected" if item["Signal today"] else "Not detected"))
+                st.write("Historical hit rate: " + (str(round(item["Historical hit rate"], 1)) + "%" if pd.notna(item["Historical hit rate"]) else "N/A"))
+                st.caption(str(int(item["Historical signals"])) + " historical observations; small samples are unreliable.")
+        with st.expander("Full results table (scroll sideways)"):
+            st.dataframe(display, hide_index=True, use_container_width=True, column_config={
             "Historical hit rate": st.column_config.NumberColumn(format="%.1f%%"),
             "Median maximum forward rise": st.column_config.NumberColumn(format="%.1f%%"),
             "Latest close": st.column_config.NumberColumn(format="%.3f")})
