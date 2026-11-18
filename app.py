@@ -16,123 +16,8 @@ if recognise_chart_structure is None:
 
 st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout="centered")
 st.title("📈 Global Pattern Scanner")
-st.caption("Explore automatic pattern discoveries or analyse an individual investment. Free historical research; not trading advice.")
+st.caption("Search one stock or cryptocurrency at a time. Free historical research; not trading advice.")
 
-page = st.radio("Choose a section", ["Search stocks", "Automatically found shares"], horizontal=True, key="app_page")
-st.caption("Search stocks: look up a share yourself. Automatically found shares: see opportunities discovered by the scanner. These are separate sections.")
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def prices_for(ticker, history):
-    d = yf.Ticker(ticker).history(period=history, auto_adjust=True)
-    return d[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]) if not d.empty else d
-
-@st.cache_data(ttl=45, show_spinner=False)
-def recent_market_quote(ticker):
-    """Latest available intraday observation, including extended hours when provided."""
-    data = yf.Ticker(ticker).history(period="5d", interval="1m", prepost=True, auto_adjust=False)
-    if data.empty or "Close" not in data:
-        return None
-    valid = data["Close"].dropna()
-    if valid.empty:
-        return None
-    last = valid.index[-1]
-    return {"price": float(valid.iloc[-1]), "timestamp": last, "currency": "quote currency"}
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def news_for(ticker):
-    try:
-        return yf.Ticker(ticker).news or []
-    except Exception:
-        return []
-
-if page == "Automatically found shares":
-    st.header("Automatically found shares")
-    st.write("Discover historical chart-shape matches across markets, or scan your own list of tickers.")
-    st.write("Scan a starter watchlist for stocks whose **current chart shape** closely resembles earlier periods in their own history.")
-    st.caption("Starter watchlist only, not every share worldwide. Free data can be delayed or incomplete. Results are research leads, not verified odds.")
-    scan_universe = {
-        "US shares": ["AAPL", "MSFT", "NVDA", "TSLA", "AMD", "PLTR"],
-        "UK shares": ["BARC.L", "RR.L", "SHEL.L", "LLOY.L", "VOD.L", "BP.L"],
-        "Crypto": ["BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD"],
-    }
-    scan_market = st.selectbox("Markets to scan", ["All starter markets", *scan_universe], key="discovery_market")
-    custom_tickers = st.text_input(
-        "Search specific shares or crypto (optional)",
-        placeholder="e.g. FORG.L, NVDA, BTC-USD",
-        key="discovery_tickers",
-        help="Enter exact Yahoo Finance ticker symbols separated by commas. Leave blank to scan the chosen market.",
-    )
-
-    scan_days = st.selectbox("Match chart length (days)", [15, 30, 60], index=1, key="discovery_days")
-    scan_horizon = st.selectbox("Check outcomes after (days)", [10, 20, 30, 60], index=2, key="discovery_horizon")
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def discover_patterns(symbols, days, future_days):
-        found = []
-        errors = []
-        for ticker in symbols:
-            try:
-                hist = prices_for(ticker, "5y")
-                if len(hist) < days * 2 + future_days + 30:
-                    errors.append(ticker)
-                    continue
-                candidates = chart_shape_matches(hist, window=days, horizon=future_days, top_n=8)
-                if len(candidates) < 4:
-                    continue
-                similarity = float(candidates[0]["distance"])
-                ups = sum(m["end_return"] > 0 for m in candidates)
-                gains20 = sum(m["best_rise"] >= 0.20 for m in candidates)
-                avg_change = sum(m["end_return"] for m in candidates) / len(candidates)
-                found.append({
-                    "Ticker": ticker, "Match score": similarity,
-                    "Past matches": len(candidates),
-                    "Finished higher": ups,
-                    "Reached +20%": gains20,
-                    "Average end change": avg_change,
-                    "Latest close": float(hist["Close"].iloc[-1]),
-                    "Match dates": ", ".join(m["date"] for m in candidates[:4]),
-                })
-            except Exception:
-                errors.append(ticker)
-        return found, errors
-
-    if st.button("Scan for opportunities", type="primary", use_container_width=True):
-        if custom_tickers.strip():
-            symbols = tuple(dict.fromkeys(t.strip().upper() for t in custom_tickers.split(",") if t.strip()))[:20]
-        else:
-            symbols = tuple(t for group in (scan_universe.values() if scan_market == "All starter markets" else [scan_universe[scan_market]]) for t in group)
-        with st.spinner(f"Comparing historical charts for {len(symbols)} assets..."):
-            st.session_state["discovery_results"] = discover_patterns(symbols, scan_days, scan_horizon)
-            st.session_state["discovery_settings"] = (scan_market, scan_days, scan_horizon, custom_tickers.strip().upper())
-    if "discovery_results" in st.session_state:
-        found, errors = st.session_state["discovery_results"]
-        settings = st.session_state.get("discovery_settings")
-        if settings != (scan_market, scan_days, scan_horizon, custom_tickers.strip().upper()):
-            st.info("Settings changed. Run the scan again to update the results.")
-        elif not found:
-            st.info("No qualifying chart matches found in this sample. Try another market or chart length.")
-        else:
-            st.caption("Sorted by historical shape similarity (lower distance = closer shape). This is not a ranking of expected returns.")
-            ranked = sorted(found, key=lambda x: x["Match score"])
-            for result in ranked:
-                with st.expander(f'{result["Ticker"]} — {result["Past matches"]} similar past charts'):
-                    st.write(f'**Similarity distance:** {result["Match score"]:.2f} (lower means more similar)')
-                    st.write(f'**Finished higher:** {result["Finished higher"]} of {result["Past matches"]} after {scan_horizon} days')
-                    st.write(f'**Reached +20% at any point:** {result["Reached +20%"]} of {result["Past matches"]}')
-                    st.write(f'**Average end change:** {result["Average end change"]:+.1%}')
-                    st.write(f'**Historical match dates:** {result["Match dates"]}')
-                    st.caption("These matches were selected because they resemble today's chart. The outcome frequencies are in-sample, based on very few examples, and are NOT reliable probabilities.")
-                    if st.button(f'Analyse {result["Ticker"]}', key="discovery_select_" + result["Ticker"]):
-                        st.session_state["selection"] = (result["Ticker"], "5y", scan_horizon)
-                        st.rerun()
-        if errors:
-            st.caption(f"Skipped {len(errors)} assets because data was missing or unavailable.")
-    st.divider()
-
-    st.stop()
-
-st.header("Search stocks")
 market = st.radio("Choose a market", ["Stocks", "Crypto"], horizontal=True)
 examples = {"Stocks": "AAPL", "Crypto": "BTC-USD"}
 query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
@@ -169,6 +54,18 @@ with st.expander("Analysis settings"):
     horizon = st.selectbox("Evaluation window (days)", [5, 10, 20, 30, 60], index=3)
     st.caption("Daily charts: stock-market days exclude weekends and holidays; crypto days include weekends. Multiple upside targets are checked automatically.")
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def prices_for(ticker, history):
+    d = yf.Ticker(ticker).history(period=history, auto_adjust=True)
+    return d[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]) if not d.empty else d
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def news_for(ticker):
+    try:
+        return yf.Ticker(ticker).news or []
+    except Exception:
+        return []
+
 if st.button("🔎 Analyse this investment", type="primary", use_container_width=True):
     st.session_state["selection"] = (symbol, period, horizon)
 if "selection" not in st.session_state:
@@ -187,20 +84,6 @@ d = add_signals(prices)
 close = float(d["Close"].iloc[-1])
 st.metric("Latest available closing price (quote currency)", f"{close:,.5f}")
 st.caption("May be delayed; the price is not a live executable quote.")
-st.caption("The daily closing price above is used for historical patterns and statistics.")
-if st.button("Refresh latest price (including extended hours)", key="refresh_quote"):
-    recent_market_quote.clear()
-try:
-    quote = recent_market_quote(symbol)
-    if quote:
-        st.metric("Latest available intraday price (quote currency)", f'{quote["price"]:,.5f}')
-        st.caption(f'Last price observation: {quote["timestamp"]}. Includes pre-market/after-hours data where the exchange and Yahoo provide it. It may be delayed, stale or unavailable; not a guaranteed live executable quote.')
-        st.caption(f'Change versus daily close: {(quote["price"] / close - 1):+.2%}. This is not necessarily the official session change.')
-    else:
-        st.info("No intraday quote available for this symbol. The last daily close is shown above.")
-except Exception:
-    st.info("Intraday or extended-hours data is temporarily unavailable. Daily analysis remains available.")
-
 active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
 if active:
     st.success("Detected on the latest trading day: " + ", ".join(active))
