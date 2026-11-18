@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import streamlit as st
 import yfinance as yf
 import scanner
+from validation import holdout_test
 
 PATTERNS = scanner.PATTERNS
 add_signals = scanner.add_signals
@@ -128,6 +129,32 @@ with st.container(border=True):
         st.write("**Similar chart shapes:** insufficient history for comparison.")
     st.caption("Evidence confidence: LOW — this rule-based signal has not been independently validated. Historical matches are selected, not unbiased odds.")
     st.caption("Based on available delayed daily prices and patterns only. News, fundamentals, institutional filings, your entry price and personal risk tolerance are NOT included in this verdict.")
+st.subheader("Historical reality check")
+with st.expander("See how the assessment performed on later, unseen dates", expanded=True):
+    st.caption("Fixed rules are evaluated on the last 30% of available daily history. Test dates are separated by the selected evaluation window, avoiding overlapping future outcomes.")
+    validation = holdout_test(prices, horizon=horizon)
+    if validation["status"] != "ok":
+        st.info(validation["reason"])
+    else:
+        st.write(f'**Test period:** {validation["split_date"]} to {validation["test_end"]} · **{validation["observations"]} independent evaluation dates**')
+        st.write(f'**Market baseline:** {validation["baseline_up"]:.0%} of tested periods finished higher, regardless of signal.')
+        summary = []
+        for label in ["BUY", "WAIT", "SELL"]:
+            v = validation["results"][label]
+            summary.append({
+                "Signal": label,
+                "Examples": v["count"],
+                "Finished higher": f'{v["up_fraction"]:.0%}' if v["up_fraction"] is not None else "N/A",
+                "Average later change": f'{v["mean_return"]:+.1%}' if v["mean_return"] is not None else "N/A",
+            })
+        st.dataframe(pd.DataFrame(summary), hide_index=True, use_container_width=True)
+        buy_n = validation["results"]["BUY"]["count"]
+        sell_n = validation["results"]["SELL"]["count"]
+        if min(buy_n, sell_n) < 10:
+            st.warning("Conclusion: INSUFFICIENT evidence for reliable Buy/Sell odds. Too few independent examples; do not treat the percentages as predictions.")
+        else:
+            st.info("Conclusion: exploratory only. More assets, longer histories, and truly forward tests are needed before assigning high-confidence labels.")
+        st.caption("Outcome is a future closing-price change, not a realised trading profit. No costs, slippage, taxes, or delisted securities are included. This checks fixed technical rules, not the nearest-shape matching method or news.")
 st.subheader("Price levels to watch")
 a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
