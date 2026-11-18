@@ -22,6 +22,32 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(all(x["signal"] in ("BUY", "WAIT", "SELL") for x in result["rows"]))
         self.assertLessEqual(result["observations"], 5)
 
+    def test_rising_market_can_generate_buy(self):
+        from scanner import add_signals
+        close = np.linspace(60, 130, 240)
+        d = pd.DataFrame({"Open": close * .999, "High": close * 1.01,
+                          "Low": close * .99, "Close": close,
+                          "Volume": np.full(240, 100000)},
+                         index=pd.bdate_range("2024-01-01", periods=240))
+        self.assertEqual(technical_label(add_signals(d)), "BUY")
+
+    def test_falling_market_can_generate_sell(self):
+        from scanner import add_signals
+        close = np.linspace(130, 60, 240)
+        d = pd.DataFrame({"Open": close * 1.001, "High": close * 1.01,
+                          "Low": close * .99, "Close": close,
+                          "Volume": np.full(240, 100000)},
+                         index=pd.bdate_range("2024-01-01", periods=240))
+        self.assertEqual(technical_label(add_signals(d)), "SELL")
+
+    def test_holdout_does_not_look_into_future(self):
+        from scanner import add_signals
+        d = self.make_prices(320)
+        altered = d.copy()
+        altered.loc[altered.index[260]:, "Close"] *= 3
+        self.assertEqual(technical_label(add_signals(d.iloc[:250])),
+                         technical_label(add_signals(altered.iloc[:250])))
+
     def test_label_uses_only_prior_prices(self):
         d = self.make_prices(200)
         from scanner import add_signals
