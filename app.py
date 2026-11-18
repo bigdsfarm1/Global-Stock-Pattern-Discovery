@@ -19,7 +19,23 @@ st.set_page_config(page_title="Global Pattern Scanner", page_icon="📈", layout
 st.title("📈 Global Pattern Scanner")
 st.caption("Search stocks, cryptocurrencies or commodities one at a time. Free historical research; not trading advice.")
 
-market = st.radio("Choose a market", ["Stocks", "Crypto", "Commodities"], horizontal=True)
+st.subheader("Search markets")
+if "active_market" not in st.session_state:
+    st.session_state["active_market"] = "Stocks"
+stock_col, crypto_col, commodity_col = st.columns(3)
+for column, label, caption in [
+    (stock_col, "Stocks", "🔎 Stocks"),
+    (crypto_col, "Crypto", "🔎 Crypto"),
+    (commodity_col, "Commodities", "🔎 Commodities"),
+]:
+    with column:
+        if st.button(caption, key="market_button_" + label, use_container_width=True,
+                     type="primary" if st.session_state["active_market"] == label else "secondary"):
+            st.session_state["active_market"] = label
+            st.session_state.pop("selection", None)
+            st.rerun()
+market = st.session_state["active_market"]
+
 COMMODITIES = {
     "Gold": "GC=F", "Silver": "SI=F", "Platinum": "PL=F", "Palladium": "PA=F",
     "Copper": "HG=F", "WTI crude oil": "CL=F", "Brent crude oil": "BZ=F",
@@ -38,7 +54,7 @@ if market == "Commodities":
     query = custom_commodity.strip().upper() or (COMMODITIES[commodity] if commodity else "")
     st.caption("These are futures price series, not physical spot prices. Some symbols may have missing data or contract-roll effects.")
 else:
-    query = st.text_input("Search company, ticker or coin", placeholder="e.g. Apple, AAPL, Bitcoin, BTC", key="search")
+    query = st.text_input("Search " + ("stocks" if market == "Stocks" else "cryptocurrencies"), placeholder="e.g. Apple or AAPL" if market == "Stocks" else "e.g. Bitcoin or BTC-USD", key="search_" + market)
 @st.cache_data(ttl=3600, show_spinner=False)
 def search_symbols(q):
     try:
