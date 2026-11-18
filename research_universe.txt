@@ -1,0 +1,21 @@
+# Starter sample; expand with valid Yahoo Finance symbols, one per line.
+AAPL
+MSFT
+NVDA
+AMD
+TSLA
+AMZN
+META
+GOOGL
+JPM
+XOM
+BARC.L
+LLOY.L
+RR.L
+SHEL.L
+BP.L
+VOD.L
+AZN.L
+GSK.L
+HSBA.L
+LSEG.L
