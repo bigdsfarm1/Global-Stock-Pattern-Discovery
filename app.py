@@ -59,6 +59,19 @@ def prices_for(ticker, history):
     d = yf.Ticker(ticker).history(period=history, auto_adjust=True)
     return d[["Open", "High", "Low", "Close", "Volume"]].dropna(subset=["Open", "High", "Low", "Close"]) if not d.empty else d
 
+@st.cache_data(ttl=45, show_spinner=False)
+def recent_market_quote(ticker):
+    """Latest available intraday observation, including extended hours when provided."""
+    data = yf.Ticker(ticker).history(period="5d", interval="1m", prepost=True, auto_adjust=False)
+    if data.empty or "Close" not in data:
+        return None
+    valid = data["Close"].dropna()
+    if valid.empty:
+        return None
+    last = valid.index[-1]
+    return {"price": float(valid.iloc[-1]), "timestamp": last, "currency": "quote currency"}
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def news_for(ticker):
     try:
@@ -156,6 +169,20 @@ d = add_signals(prices)
 close = float(d["Close"].iloc[-1])
 st.metric("Latest available closing price (quote currency)", f"{close:,.5f}")
 st.caption("May be delayed; the price is not a live executable quote.")
+st.caption("The daily closing price above is used for historical patterns and statistics.")
+if st.button("Refresh latest price (including extended hours)", key="refresh_quote"):
+    recent_market_quote.clear()
+try:
+    quote = recent_market_quote(symbol)
+    if quote:
+        st.metric("Latest available intraday price (quote currency)", f'{quote["price"]:,.5f}')
+        st.caption(f'Last price observation: {quote["timestamp"]}. Includes pre-market/after-hours data where the exchange and Yahoo provide it. It may be delayed, stale or unavailable; not a guaranteed live executable quote.')
+        st.caption(f'Change versus daily close: {(quote["price"] / close - 1):+.2%}. This is not necessarily the official session change.')
+    else:
+        st.info("No intraday quote available for this symbol. The last daily close is shown above.")
+except Exception:
+    st.info("Intraday or extended-hours data is temporarily unavailable. Daily analysis remains available.")
+
 active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
 if active:
     st.success("Detected on the latest trading day: " + ", ".join(active))
