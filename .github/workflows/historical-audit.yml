@@ -1,0 +1,31 @@
+name: Historical performance audit
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'historical_audit.py'
+      - 'validation.py'
+      - 'scanner.py'
+      - '.github/workflows/historical-audit.yml'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run deterministic tests
+        run: python -m unittest -v test_validation
+      - name: Backtest 24 assets using real daily histories
+        run: python historical_audit.py
+      - name: Save audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-audit-results
+          path: audit_results/
+          if-no-files-found: warn
