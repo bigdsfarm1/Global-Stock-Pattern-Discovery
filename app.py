@@ -42,7 +42,7 @@ if not symbol:
 with st.expander("Analysis settings"):
     period = st.selectbox("Historical data", ["1y", "2y", "5y"], index=1)
     horizon = st.selectbox("Evaluation window (days of price bars)", [5, 10, 20, 30, 60], index=3)
-    target = st.slider("Target price rise (%)", 5, 100, 20, 5)
+    st.caption("The scanner automatically checks multiple upside targets — no target to choose.")
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def prices_for(ticker, history):
@@ -57,10 +57,10 @@ def news_for(ticker):
         return []
 
 if st.button("🔎 Analyse this investment", type="primary", use_container_width=True):
-    st.session_state["selection"] = (symbol, period, horizon, target)
+    st.session_state["selection"] = (symbol, period, horizon)
 if "selection" not in st.session_state:
     st.stop()
-symbol, period, horizon, target = st.session_state["selection"]
+symbol, period, horizon = st.session_state["selection"]
 st.subheader(f"Analysis: {symbol}")
 try:
     prices = prices_for(symbol, period)
@@ -104,16 +104,17 @@ a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
 b.metric("20-bar resistance (quote currency)", f"{resistance:,.5f}")
 st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
-st.subheader("What did similar patterns do historically?")
+st.subheader("Opportunity range from historical patterns")
+st.caption(f"Automatically checks rises of 5%, 10%, 20%, 30%, 50% and 100% within {horizon} future price bars. A hit means the future HIGH touched that level, not that a trade would have earned it.")
+targets = [5, 10, 20, 30, 50, 100]
 for p in PATTERNS:
-    stats = event_study(d, p, horizon, target / 100)
-    with st.container(border=True):
-        st.markdown(f"**{p}**")
-        if stats["signals"]:
-            st.write(f'{stats["hit_rate"]:.1%} reached +{target}% within {horizon} bars')
-            st.caption(f'{stats["signals"]} historical occurrences. ' + ("Small sample; unreliable." if stats["signals"] < 30 else "Overlapping signals can exaggerate reliability."))
-        else:
-            st.caption("Not enough historical examples to calculate a hit rate.")
+    with st.expander(f"{'🟢 ' if p in active else ''}{p}" + (" — active now" if p in active else " — historical reference"), expanded=p in active):
+        results = []
+        for target in targets:
+            stats = event_study(d, p, horizon, target / 100)
+            results.append({"Rise": f"+{target}%", "Historical hit rate": f'{stats["hit_rate"]:.1%}' if pd.notna(stats["hit_rate"]) else "N/A", "Occurrences": stats["signals"]})
+        st.dataframe(pd.DataFrame(results), hide_index=True, use_container_width=True)
+        st.caption("These are overlapping historical observations, not independent probabilities or future price targets. Larger rises are generally less common.")
 st.subheader("Price chart")
 fig = go.Figure(data=[go.Candlestick(x=d.index, open=d.Open, high=d.High, low=d.Low, close=d.Close)])
 fig.add_hline(y=support, line_dash="dot", annotation_text="Recent support")
