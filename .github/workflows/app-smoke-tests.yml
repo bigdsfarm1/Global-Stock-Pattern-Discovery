@@ -8,6 +8,7 @@ on:
       - 'pattern_discovery.py'
       - 'pattern_validation_ui.py'
       - 'background_scan.py'
+      - 'price_action_sequences.py'
       - 'market_opportunities.py'
       - 'test_app_smoke.py'
       - 'requirements.txt'
@@ -27,6 +28,6 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Compile Python modules
-        run: python -m compileall -q app.py scanner.py pattern_discovery.py pattern_validation_ui.py background_scan.py market_opportunities.py
+        run: python -m compileall -q app.py scanner.py pattern_discovery.py price_action_sequences.py background_scan.py market_opportunities.py
       - name: Run offline scanner tests
         run: python -m unittest -v test_app_smoke
