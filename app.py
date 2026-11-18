@@ -86,9 +86,9 @@ st.metric("Latest available closing price (quote currency)", f"{close:,.5f}")
 st.caption("May be delayed; the price is not a live executable quote.")
 active = [p for p in PATTERNS if bool(d[p].iloc[-1])]
 if active:
-    st.success("Detected on latest price bar: " + ", ".join(active))
+    st.success("Detected on the latest trading day: " + ", ".join(active))
 else:
-    st.info("No monitored pattern detected on the latest price bar. This is not a buy signal.")
+    st.info("No monitored pattern detected on the latest trading day. This is not a buy signal.")
 # Rule-based technical action labels, not personal investment instructions.
 recent = d.tail(20)
 support = float(recent["Low"].min())
@@ -164,8 +164,8 @@ with st.container(border=True):
     st.caption("Based on available delayed daily prices and patterns only. News, fundamentals, institutional filings, your entry price and personal risk tolerance are NOT included in this verdict.")
 st.subheader("Price levels to watch")
 a, b = st.columns(2)
-a.metric("20-bar support (quote currency)", f"{support:,.5f}")
-b.metric("20-bar resistance (quote currency)", f"{resistance:,.5f}")
+a.metric("20-day support (quote currency)", f"{support:,.5f}")
+b.metric("20-day resistance (quote currency)", f"{resistance:,.5f}")
 st.caption("Support and resistance are recent observed extremes, NOT recommended buy/sell prices. Prices may break through either level.")
 st.subheader("🔍 Pattern discovery — explained")
 st.write("We compare the shape of today's chart with older sections of this same investment's chart.")
