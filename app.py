@@ -127,89 +127,17 @@ with st.container(border=True):
         st.write(f"**Similar chart shapes:** {up_count} of {match_count} finished higher and {down_count} finished lower after {horizon} days.")
     else:
         st.write("**Similar chart shapes:** insufficient history for comparison.")
-    st.caption("Evidence confidence: LOW — this rule-based signal has not been independently validated. Historical matches are selected, not unbiased odds.")
-    st.caption("Based on available delayed daily prices and patterns only. News, fundamentals, institutional filings, your entry price and personal risk tolerance are NOT included in this verdict.")
-st.subheader("Historical reality check")
-with st.expander("See how the assessment performed on later, unseen dates", expanded=True):
-    st.caption("Fixed rules are evaluated on the last 30% of available daily history. Test dates are separated by the selected evaluation window, avoiding overlapping future outcomes.")
     validation = holdout_test(prices, horizon=horizon)
-    if validation["status"] != "ok":
-        st.info(validation["reason"])
-    else:
-        st.write(f'**Test period:** {validation["split_date"]} to {validation["test_end"]} · **{validation["observations"]} independent evaluation dates**')
-        st.write(f'**Market baseline:** {validation["baseline_up"]:.0%} of tested periods finished higher, regardless of signal.')
-        summary = []
-        for label in ["BUY", "WAIT", "SELL"]:
-            v = validation["results"][label]
-            summary.append({
-                "Signal": label,
-                "Examples": v["count"],
-                "Finished higher": f'{v["up_fraction"]:.0%}' if v["up_fraction"] is not None else "N/A",
-                "Average later change": f'{v["mean_return"]:+.1%}' if v["mean_return"] is not None else "N/A",
-            })
-        st.dataframe(pd.DataFrame(summary), hide_index=True, use_container_width=True)
-        buy_n = validation["results"]["BUY"]["count"]
-        sell_n = validation["results"]["SELL"]["count"]
-        if min(buy_n, sell_n) < 10:
-            st.warning("Conclusion: INSUFFICIENT evidence for reliable Buy/Sell odds. Too few independent examples; do not treat the percentages as predictions.")
+    if validation["status"] == "ok":
+        current_label = "BUY" if action.startswith("BUY") else ("SELL" if action.startswith("SELL") else "WAIT")
+        v = validation["results"][current_label]
+        if v["count"] >= 20:
+            st.caption(f'Historical evidence: {v["count"]} independent later-period examples; {v["up_fraction"]:.0%} finished higher. This is exploratory, not a reliable prediction.')
         else:
-            st.info("Conclusion: exploratory only. More assets, longer histories, and truly forward tests are needed before assigning high-confidence labels.")
-        st.caption("Outcome is a future closing-price change, not a realised trading profit. No costs, slippage, taxes, or delisted securities are included. This checks fixed technical rules, not the nearest-shape matching method or news.")
-st.subheader("Test the scanner across different markets")
-with st.expander("Run a multi-market historical test"):
-    st.write("Test fixed technical Buy / Hold / Sell rules across a small selection of major shares and cryptocurrencies. This is a research sample, not the whole global market.")
-    sample_symbols = ["AAPL", "MSFT", "NVDA", "TSLA", "BARC.L", "RR.L", "BTC-USD", "ETH-USD"]
-    st.caption("Sample: Apple, Microsoft, NVIDIA, Tesla, Barclays, Rolls-Royce, Bitcoin and Ethereum.")
-    if st.button("Run multi-market test", use_container_width=True):
-        with st.spinner("Downloading historical prices and evaluating later outcomes..."):
-            all_results = []
-            errors = []
-            for ticker in sample_symbols:
-                try:
-                    history = prices_for(ticker, "5y")
-                    if history.empty:
-                        errors.append(ticker + ": no prices")
-                        continue
-                    outcome = holdout_test(history, horizon=horizon)
-                    if outcome["status"] != "ok":
-                        errors.append(ticker + ": " + outcome["reason"])
-                        continue
-                    for label in ["BUY", "WAIT", "SELL"]:
-                        v = outcome["results"][label]
-                        all_results.append({"Asset": ticker, "Signal": label,
-                            "Examples": v["count"], "Up rate": v["up_fraction"],
-                            "Average return": v["mean_return"],
-                            "Baseline up": outcome["baseline_up"]})
-                except Exception as exc:
-                    errors.append(ticker + ": " + str(exc)[:100])
-            if all_results:
-                st.session_state["market_test_results"] = all_results
-                st.session_state["market_test_errors"] = errors
-            else:
-                st.warning("No usable results were downloaded. Please retry later.")
-                if errors:
-                    st.write(errors)
-    if "market_test_results" in st.session_state:
-        tested = pd.DataFrame(st.session_state["market_test_results"])
-        shown = tested.copy()
-        for field in ["Up rate", "Average return", "Baseline up"]:
-            shown[field] = shown[field].map(lambda x: f"{x:.1%}" if pd.notna(x) else "N/A")
-        st.dataframe(shown, hide_index=True, use_container_width=True)
-        st.markdown("**Combined results by signal**")
-        for label in ["BUY", "WAIT", "SELL"]:
-            group = tested[(tested.Signal == label) & (tested.Examples > 0)]
-            count = int(group.Examples.sum())
-            if count:
-                weighted_up = float((group["Up rate"] * group.Examples).sum() / count)
-                weighted_return = float((group["Average return"] * group.Examples).sum() / count)
-                st.write(f"**{label}:** {count} examples; {weighted_up:.0%} finished higher; average subsequent price change {weighted_return:+.1%}.")
-            else:
-                st.write(f"**{label}:** no test examples.")
-        st.warning("Evidence rating: EXPLORATORY. These assets were chosen in advance, but the technical rules have not been independently validated across a broad universe. The sample may be small, and market returns are correlated.")
-        st.caption("Chronological final-30% tests; evaluation dates are spaced by the chosen horizon. No costs, dividends, execution delays, delisted securities, or shorts. Do not interpret SELL as a tested short-selling strategy.")
-        if st.session_state.get("market_test_errors"):
-            with st.expander("Data sources that could not be tested"):
-                st.write(st.session_state["market_test_errors"])
+            st.caption("Pattern reliability: Insufficient evidence — too few independent historical examples to estimate reliable odds.")
+    else:
+        st.caption("Pattern reliability: Insufficient historical data for a meaningful test.")
+    st.caption("Based on available delayed daily prices and patterns only. News, fundamentals, institutional filings, your entry price and personal risk tolerance are NOT included in this verdict.")
 st.subheader("Price levels to watch")
 a, b = st.columns(2)
 a.metric("20-bar support (quote currency)", f"{support:,.5f}")
