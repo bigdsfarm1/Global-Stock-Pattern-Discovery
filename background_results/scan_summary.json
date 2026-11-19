@@ -1,8 +1,77 @@
 {
-  "generated_utc": "2026-11-18T19:04:59.897733+00:00",
-  "scope": "Curated free-data starter universe, not all listed assets",
-  "requested": 59,
-  "analysed": 59,
-  "failed": [],
-  "method": "Descriptive heuristics, no verified predictive edge"
+  "generated_utc": "2026-11-19T14:29:11.741498+00:00",
+  "scope": "Rolling free-data scan: US-listed stock directories plus starter UK shares, crypto and commodity futures; NOT every exchange worldwide",
+  "requested": 7135,
+  "analysed": 108,
+  "batch_requested": 120,
+  "batch_failed": 12,
+  "failed": [
+    {
+      "market": "Stocks",
+      "symbol": "AAC",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AAC-U",
+      "error": "No history"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AAC-W",
+      "error": "No history"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AACIW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AACOW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AACPW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ABLVW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ACAAW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ACCV",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ACONW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ADACW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "ADBT",
+      "error": "Insufficient candles"
+    }
+  ],
+  "stored_assets": 127,
+  "next_offset": 120,
+  "directory_sources": {
+    "nasdaqlisted": 4312,
+    "otherlisted": 2763
+  },
+  "method": "Descriptive heuristics plus exploratory historical whole-chart analog matching; no validated predictive edge"
 }
