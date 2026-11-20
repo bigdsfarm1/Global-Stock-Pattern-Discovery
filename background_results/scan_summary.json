@@ -1,74 +1,79 @@
 {
-  "generated_utc": "2026-11-19T14:29:11.741498+00:00",
+  "generated_utc": "2026-11-20T07:59:31.326441+00:00",
   "scope": "Rolling free-data scan: US-listed stock directories plus starter UK shares, crypto and commodity futures; NOT every exchange worldwide",
   "requested": 7135,
-  "analysed": 108,
+  "analysed": 107,
   "batch_requested": 120,
-  "batch_failed": 12,
+  "batch_failed": 13,
   "failed": [
     {
       "market": "Stocks",
-      "symbol": "AAC",
+      "symbol": "ADRX",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AAC-U",
+      "symbol": "ADSEW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AEAQW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AENTW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AERTW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AESPR",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AESPW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AFJKR",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AFRIW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AGLTW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AIIA-R",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "AAC-W",
+      "symbol": "AIIA-U",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "AACIW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "AACOW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "AACPW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ABLVW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ACAAW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ACCV",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ACONW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ADACW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ADBT",
+      "symbol": "AIIOW",
       "error": "Insufficient candles"
     }
   ],
-  "stored_assets": 127,
-  "next_offset": 120,
+  "stored_assets": 234,
+  "next_offset": 240,
   "directory_sources": {
     "nasdaqlisted": 4312,
     "otherlisted": 2763
