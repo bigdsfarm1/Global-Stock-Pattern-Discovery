@@ -1,82 +1,92 @@
 {
-  "generated_utc": "2026-11-20T07:59:31.326441+00:00",
+  "generated_utc": "2026-11-20T14:28:00.917978+00:00",
   "scope": "Rolling free-data scan: US-listed stock directories plus starter UK shares, crypto and commodity futures; NOT every exchange worldwide",
-  "requested": 7135,
-  "analysed": 107,
+  "requested": 7130,
+  "analysed": 105,
   "batch_requested": 120,
-  "batch_failed": 13,
+  "batch_failed": 15,
   "failed": [
     {
       "market": "Stocks",
-      "symbol": "ADRX",
+      "symbol": "AIMDW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "ADSEW",
+      "symbol": "AIOK",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AEAQW",
+      "symbol": "AIRI",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AENTW",
+      "symbol": "AIRJW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AERTW",
+      "symbol": "AISPW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AESPR",
+      "symbol": "ALFUW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AESPW",
+      "symbol": "ALISR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AFJKR",
+      "symbol": "ALOVW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AFRIW",
+      "symbol": "ALPXR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AGLTW",
+      "symbol": "ALPXW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AIIA-R",
+      "symbol": "ALUB-U",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "AIIA-U",
+      "symbol": "ALUB-W",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "AIIOW",
+      "symbol": "ALVOW",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AMAC",
+      "error": "Insufficient candles"
+    },
+    {
+      "market": "Stocks",
+      "symbol": "AMACW",
       "error": "Insufficient candles"
     }
   ],
-  "stored_assets": 234,
-  "next_offset": 240,
+  "stored_assets": 339,
+  "next_offset": 360,
   "directory_sources": {
-    "nasdaqlisted": 4312,
-    "otherlisted": 2763
+    "nasdaqlisted": 4308,
+    "otherlisted": 2762
   },
   "method": "Descriptive heuristics plus exploratory historical whole-chart analog matching; no validated predictive edge"
 }
