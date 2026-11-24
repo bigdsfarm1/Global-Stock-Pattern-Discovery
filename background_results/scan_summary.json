@@ -1,82 +1,67 @@
 {
-  "generated_utc": "2026-11-23T14:36:02.207786+00:00",
+  "generated_utc": "2026-11-24T14:31:28.074199+00:00",
   "scope": "Rolling free-data scan: US-listed stock directories plus starter UK shares, crypto and commodity futures; NOT every exchange worldwide",
-  "requested": 7127,
-  "analysed": 107,
+  "requested": 7126,
+  "analysed": 110,
   "batch_requested": 120,
-  "batch_failed": 13,
+  "batch_failed": 10,
   "failed": [
     {
       "market": "Stocks",
-      "symbol": "AMODW",
+      "symbol": "ARCLW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "AMPX-W",
-      "error": "No history"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "AMRO",
+      "symbol": "ARTCW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "ANGHW",
+      "symbol": "ASBH",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "ANNAW",
+      "symbol": "ASBPW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "ANT",
+      "symbol": "ASPCR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "APACR",
+      "symbol": "ASPE",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "APLMW",
+      "symbol": "ASPSW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "APMCR",
+      "symbol": "ASPSZ",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "APURR",
+      "symbol": "ATLQR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "APXC",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "APXTW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "ARCIW",
+      "symbol": "ATLQW",
       "error": "Insufficient candles"
     }
   ],
-  "stored_assets": 445,
-  "next_offset": 480,
+  "stored_assets": 555,
+  "next_offset": 600,
   "directory_sources": {
-    "nasdaqlisted": 4306,
-    "otherlisted": 2761
+    "nasdaqlisted": 4303,
+    "otherlisted": 2763
   },
   "method": "Descriptive heuristics plus exploratory historical whole-chart analog matching; no validated predictive edge"
 }
