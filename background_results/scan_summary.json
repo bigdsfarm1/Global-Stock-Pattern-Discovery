@@ -1,111 +1,86 @@
 {
-  "generated_utc": "2026-11-26T14:33:20.427312+00:00",
+  "generated_utc": "2026-11-27T14:29:57.487779+00:00",
   "scope": "Rolling free-data scan: US-listed stock directories plus starter UK shares, crypto and commodity futures; NOT every exchange worldwide",
-  "requested": 7125,
-  "analysed": 101,
+  "requested": 7124,
+  "analysed": 106,
   "batch_requested": 120,
-  "batch_failed": 19,
+  "batch_failed": 14,
   "failed": [
     {
       "market": "Stocks",
-      "symbol": "BBTX",
+      "symbol": "BHAVR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BCCQW",
+      "symbol": "BIAFW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BCGWW",
+      "symbol": "BIDWR",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BCSS-U",
+      "symbol": "BIII-U",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "BCSS-W",
+      "symbol": "BIII-W",
       "error": "No history"
     },
     {
       "market": "Stocks",
-      "symbol": "BCTXL",
+      "symbol": "BIOTW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BCTXZ",
+      "symbol": "BIVIW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BDCIW",
+      "symbol": "BLRKW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BDMDW",
+      "symbol": "BLUWW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BEAGR",
+      "symbol": "BLZRW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BEBE-U",
-      "error": "No history"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "BEBE-W",
-      "error": "No history"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "BENFW",
+      "symbol": "BMMX",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BESS-W",
-      "error": "No history"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "BETRW",
+      "symbol": "BNAIW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BFLR",
+      "symbol": "BNCWW",
       "error": "Insufficient candles"
     },
     {
       "market": "Stocks",
-      "symbol": "BFRGW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "BGLWW",
-      "error": "Insufficient candles"
-    },
-    {
-      "market": "Stocks",
-      "symbol": "BHAIU",
+      "symbol": "BNCWZ",
       "error": "Insufficient candles"
     }
   ],
-  "stored_assets": 768,
-  "next_offset": 840,
+  "stored_assets": 874,
+  "next_offset": 960,
   "directory_sources": {
-    "nasdaqlisted": 4302,
+    "nasdaqlisted": 4301,
     "otherlisted": 2763
   },
   "method": "Descriptive heuristics plus exploratory historical whole-chart analog matching; no validated predictive edge"
